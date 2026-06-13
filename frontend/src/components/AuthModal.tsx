@@ -110,6 +110,11 @@ export function AuthModal({ onClose }: AuthModalProps) {
                 required
               />
             </div>
+            {!isLogin && (
+              <p className="mt-1.5 text-[11px] text-gray-500 leading-normal">
+                Password must be at least 6 characters and contain at least one uppercase letter, one lowercase letter, and one number.
+              </p>
+            )}
           </div>
 
           <button
