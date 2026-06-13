@@ -20,7 +20,10 @@ data class LoginRequest(
 data class RegisterRequest(
     val name: String,
     val email: String,
-    val password: String
+    val password: String,
+    val accountType: String,
+    val subscribeToNewsletter: Boolean,
+    val agreeToTerms: Boolean
 )
 
 data class AuthResponse(

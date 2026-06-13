@@ -1,7 +1,9 @@
 package com.qrvault.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,9 +42,22 @@ fun AuthDialog(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
+    // Custom Registration States
+    var accountType by remember { mutableStateOf("individual") }
+    var agreeToTerms by remember { mutableStateOf(false) }
+    var subscribeToNewsletter by remember { mutableStateOf(false) }
+
+    // Password Validation Logic
+    val hasMinLength = password.length >= 6
+    val hasUppercase = password.any { it.isUpperCase() }
+    val hasLowercase = password.any { it.isLowerCase() }
+    val hasNumber = password.any { it.isDigit() }
+    val isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -123,7 +138,6 @@ fun AuthDialog(
                 }
                 
                 // Form Fields
-                // Text field colors for visibility on white background
                 val textFieldColors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Gray800,
                     unfocusedTextColor = Gray800,
@@ -152,6 +166,67 @@ fun AuthDialog(
                         colors = textFieldColors
                     )
                     
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Account Type Header
+                    Text(
+                        text = "Account Type",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray700,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                    
+                    // Account Type Button Selector
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { accountType = "individual" },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (accountType == "individual") Orange600.copy(alpha = 0.08f) else White,
+                                contentColor = if (accountType == "individual") Orange600 else Gray600
+                            ),
+                            border = BorderStroke(
+                                width = 1.5.dp,
+                                color = if (accountType == "individual") Orange600 else Gray300
+                            )
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Text("Individual", fontWeight = FontWeight.Bold)
+                                Text("Personal use", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                            }
+                        }
+                        
+                        OutlinedButton(
+                            onClick = { accountType = "business" },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (accountType == "business") Orange600.copy(alpha = 0.08f) else White,
+                                contentColor = if (accountType == "business") Orange600 else Gray600
+                            ),
+                            border = BorderStroke(
+                                width = 1.5.dp,
+                                color = if (accountType == "business") Orange600 else Gray300
+                            )
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Text("Business", fontWeight = FontWeight.Bold)
+                                Text("Brands & teams", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
@@ -194,6 +269,103 @@ fun AuthDialog(
                     colors = textFieldColors
                 )
                 
+                if (!isLoginMode && password.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Gray100),
+                        border = BorderStroke(1.dp, Gray200)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Password Requirements:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Gray600
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(if (hasMinLength) Success else Gray400, shape = CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Min 6 chars",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasMinLength) Success else Gray500
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(if (hasUppercase) Success else Gray400, shape = CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "1 uppercase",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasUppercase) Success else Gray500
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(if (hasLowercase) Success else Gray400, shape = CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "1 lowercase",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasLowercase) Success else Gray500
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(if (hasNumber) Success else Gray400, shape = CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "1 number",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (hasNumber) Success else Gray500
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 if (!isLoginMode) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
@@ -204,19 +376,68 @@ fun AuthDialog(
                         leadingIcon = {
                             Icon(Icons.Outlined.Lock, contentDescription = null)
                         },
+                        trailingIcon = {
+                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                                Icon(
+                                    imageVector = if (showConfirmPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = if (showConfirmPassword) "Hide password" else "Show password"
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         isError = confirmPassword.isNotEmpty() && password != confirmPassword,
                         supportingText = {
                             if (confirmPassword.isNotEmpty() && password != confirmPassword) {
                                 Text("Passwords do not match", color = Error)
+                            } else if (confirmPassword.isNotEmpty() && password == confirmPassword) {
+                                Text("Passwords match", color = Success)
                             }
                         },
                         colors = textFieldColors
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Agreement Checkboxes
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = agreeToTerms,
+                            onCheckedChange = { agreeToTerms = it },
+                            colors = CheckboxDefaults.colors(checkedColor = Orange600)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "I agree to the Terms & Privacy Policy",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Gray600
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = subscribeToNewsletter,
+                            onCheckedChange = { subscribeToNewsletter = it },
+                            colors = CheckboxDefaults.colors(checkedColor = Orange600)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Keep me updated with news & offers",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Gray600
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -240,8 +461,12 @@ fun AuthDialog(
                                 errorMessage = "Passwords do not match"
                                 return@Button
                             }
-                            if (password.length < 6) {
-                                errorMessage = "Password must be at least 6 characters"
+                            if (!isPasswordValid) {
+                                errorMessage = "Password does not meet the requirements"
+                                return@Button
+                            }
+                            if (!agreeToTerms) {
+                                errorMessage = "You must agree to the Terms of Service"
                                 return@Button
                             }
                         }
@@ -251,7 +476,14 @@ fun AuthDialog(
                             val result = if (isLoginMode) {
                                 authRepository.login(email, password)
                             } else {
-                                authRepository.register(name, email, password)
+                                authRepository.register(
+                                    name = name,
+                                    email = email,
+                                    password = password,
+                                    accountType = accountType,
+                                    subscribeToNewsletter = subscribeToNewsletter,
+                                    agreeToTerms = agreeToTerms
+                                )
                             }
                             
                             isLoading = false
@@ -271,7 +503,7 @@ fun AuthDialog(
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Orange600),
                     shape = RoundedCornerShape(16.dp),
-                    enabled = !isLoading
+                    enabled = !isLoading && (isLoginMode || (agreeToTerms && isPasswordValid && password == confirmPassword))
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(

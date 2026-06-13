@@ -72,9 +72,25 @@ class AuthRepository(private val context: Context) {
         }
     }
     
-    suspend fun register(name: String, email: String, password: String): Result<User> {
+    suspend fun register(
+        name: String,
+        email: String,
+        password: String,
+        accountType: String,
+        subscribeToNewsletter: Boolean,
+        agreeToTerms: Boolean
+    ): Result<User> {
         return try {
-            val response = apiService.register(RegisterRequest(name, email, password))
+            val response = apiService.register(
+                RegisterRequest(
+                    name = name,
+                    email = email,
+                    password = password,
+                    accountType = accountType,
+                    subscribeToNewsletter = subscribeToNewsletter,
+                    agreeToTerms = agreeToTerms
+                )
+            )
             if (response.isSuccessful && response.body()?.success == true) {
                 val authResponse = response.body()!!
                 val user = authResponse.user!!.copy(token = authResponse.token)
