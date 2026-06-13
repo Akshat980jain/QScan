@@ -1,16 +1,31 @@
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+let mongoServer = null;
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/qrvault';
+    let mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/qrvault';
     
-    const conn = await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log(`MongoDB Connected: ${conn.connection.host}:${conn.connection.port}`);
-    console.log(`Database: ${conn.connection.name}`);
+    // Try to connect to the specified MongoDB URI first
+    try {
+      const conn = await mongoose.connect(mongoURI, {
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+      });
+      console.log(`MongoDB Connected: ${conn.connection.host}:${conn.connection.port}`);
+      console.log(`Database: ${conn.connection.name}`);
+    } catch (initialError) {
+      console.log('Primary MongoDB connection failed, starting in-memory MongoDB server...');
+      
+      // Start in-memory MongoDB server as fallback
+      mongoServer = await MongoMemoryServer.create();
+      mongoURI = mongoServer.getUri();
+      
+      const conn = await mongoose.connect(mongoURI);
+      console.log(`MongoDB Memory Server Connected: ${conn.connection.host}:${conn.connection.port}`);
+      console.log(`Database: ${conn.connection.name}`);
+      console.log('⚠️  Using in-memory database - data will not persist after restart');
+    }
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {
@@ -24,6 +39,9 @@ const connectDB = async () => {
     // Graceful shutdown
     process.on('SIGINT', async () => {
       await mongoose.connection.close();
+      if (mongoServer) {
+        await mongoServer.stop();
+      }
       console.log('MongoDB connection closed through app termination');
       process.exit(0);
     });

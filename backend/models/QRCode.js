@@ -27,6 +27,15 @@ const qrCodeSchema = new mongoose.Schema({
     type: String,
     required: [true, 'QR code image is required']
   },
+  isFavorite: {
+    type: Boolean,
+    default: false
+  },
+  category: {
+    type: String,
+    enum: ['general', 'work', 'personal', 'social', 'other'],
+    default: 'general'
+  },
   metadata: {
     // For WiFi QR codes
     ssid: String,
@@ -35,16 +44,16 @@ const qrCodeSchema = new mongoose.Schema({
       enum: ['WPA', 'WEP', 'nopass']
     },
     hidden: Boolean,
-    
+
     // For contact QR codes
     contactName: String,
     phone: String,
     email: String,
     organization: String,
-    
+
     // For URL QR codes
     domain: String,
-    
+
     // General metadata
     description: String,
     tags: [String]
@@ -75,12 +84,12 @@ qrCodeSchema.index({ userId: 1, type: 1 });
 qrCodeSchema.index({ userId: 1, name: 'text' });
 
 // Virtual for formatted creation date
-qrCodeSchema.virtual('formattedDate').get(function() {
+qrCodeSchema.virtual('formattedDate').get(function () {
   return this.createdAt.toLocaleDateString();
 });
 
 // Method to increment scan count
-qrCodeSchema.methods.incrementScanCount = function() {
+qrCodeSchema.methods.incrementScanCount = function () {
   this.scanCount += 1;
   this.lastScanned = new Date();
   return this.save();

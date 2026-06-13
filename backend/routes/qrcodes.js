@@ -12,9 +12,17 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
   try {
     const { name, type, content, image, metadata } = req.body;
 
+    console.log('QR Code creation request received:');
+    console.log('- name:', name);
+    console.log('- type:', type);
+    console.log('- content length:', content?.length);
+    console.log('- image present:', !!image);
+    console.log('- image length:', image?.length);
+    console.log('- user id:', req.user._id);
+
     // Process metadata based on QR type
     let processedMetadata = {};
-    
+
     if (type === 'wifi' && metadata) {
       processedMetadata = {
         ssid: metadata.ssid,
@@ -47,6 +55,7 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
     });
 
     await qrCode.save();
+    console.log('QR Code saved successfully with id:', qrCode._id);
 
     res.status(201).json({
       success: true,
@@ -68,17 +77,17 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 20, type, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
-    
+
     // Build query
-    const query = { 
+    const query = {
       userId: req.user._id,
       isActive: true
     };
-    
+
     if (type) {
       query.type = type;
     }
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -156,7 +165,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { name, metadata, isPublic } = req.body;
-    
+
     const qrCode = await QRCode.findOne({
       _id: req.params.id,
       userId: req.user._id,
@@ -293,12 +302,16 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
       createdAt: { $gte: sevenDaysAgo }
     });
 
+    // Get favorites count
+    const favoritesCount = await QRCode.countDocuments({ userId, isActive: true, isFavorite: true });
+
     res.json({
       success: true,
       stats: {
         totalQRCodes: totalCount,
         totalScans: scanStats[0]?.totalScans || 0,
         recentQRCodes: recentCount,
+        favoritesCount: favoritesCount,
         typeBreakdown: typeStats
       }
     });
@@ -307,6 +320,129 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching statistics'
+    });
+  }
+});
+
+// @route   PUT /api/qr-codes/:id
+// @desc    Update a QR code
+// @access  Private
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { name, content, type, category, image } = req.body;
+
+    const qrCode = await QRCode.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+      isActive: true
+    });
+
+    if (!qrCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'QR code not found'
+      });
+    }
+
+    // Update fields if provided
+    if (name) qrCode.name = name;
+    if (content) qrCode.content = content;
+    if (type) qrCode.type = type;
+    if (category) qrCode.category = category;
+    if (image) qrCode.image = image;
+
+    await qrCode.save();
+
+    res.json({
+      success: true,
+      message: 'QR code updated successfully',
+      qrCode
+    });
+  } catch (error) {
+    console.error('QR code update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during QR code update'
+    });
+  }
+});
+
+// @route   PATCH /api/qr-codes/:id/favorite
+// @desc    Toggle favorite status of a QR code
+// @access  Private
+router.patch('/:id/favorite', authenticateToken, async (req, res) => {
+  try {
+    const qrCode = await QRCode.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+      isActive: true
+    });
+
+    if (!qrCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'QR code not found'
+      });
+    }
+
+    // Toggle favorite status
+    qrCode.isFavorite = !qrCode.isFavorite;
+    await qrCode.save();
+
+    res.json({
+      success: true,
+      message: qrCode.isFavorite ? 'Added to favorites' : 'Removed from favorites',
+      isFavorite: qrCode.isFavorite
+    });
+  } catch (error) {
+    console.error('Favorite toggle error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during favorite toggle'
+    });
+  }
+});
+
+// @route   PATCH /api/qr-codes/:id/category
+// @desc    Update category of a QR code
+// @access  Private
+router.patch('/:id/category', authenticateToken, async (req, res) => {
+  try {
+    const { category } = req.body;
+
+    if (!['general', 'work', 'personal', 'social', 'other'].includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category'
+      });
+    }
+
+    const qrCode = await QRCode.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+      isActive: true
+    });
+
+    if (!qrCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'QR code not found'
+      });
+    }
+
+    qrCode.category = category;
+    await qrCode.save();
+
+    res.json({
+      success: true,
+      message: 'Category updated successfully',
+      category: qrCode.category
+    });
+  } catch (error) {
+    console.error('Category update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during category update'
     });
   }
 });

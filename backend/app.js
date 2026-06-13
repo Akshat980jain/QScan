@@ -12,6 +12,7 @@ const { generalLimiter } = require('./middleware/rateLimiter');
 // Route imports
 const authRoutes = require('./routes/auth');
 const qrCodeRoutes = require('./routes/qrcodes');
+const scanHistoryRoutes = require('./routes/scanHistory');
 
 const app = express();
 
@@ -25,9 +26,9 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: true, // Allow all origins for development/mobile apps
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -61,6 +62,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/qr-codes', qrCodeRoutes);
+app.use('/api/scan-history', scanHistoryRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
