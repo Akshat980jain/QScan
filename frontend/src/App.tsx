@@ -11,7 +11,7 @@ import { Sparkles, TrendingUp, Zap, Shield, Users, Clock } from 'lucide-react';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'generate' | 'library'>('generate');
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState<'login' | 'register' | false>(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +64,7 @@ function AppContent() {
       <Header 
         activeTab={activeTab}
         setActiveTab={handleTabChange}
-        onSignInClick={() => setShowAuthModal(true)}
+        onSignInClick={() => setShowAuthModal('login')}
         onSettingsClick={() => setShowSettingsModal(true)}
         onScanClick={() => setShowScannerModal(true)}
       />
@@ -84,7 +84,7 @@ function AppContent() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={() => setShowAuthModal('register')}
                   className="px-8 py-4 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
                   Get Started Free
@@ -231,7 +231,7 @@ function AppContent() {
       </footer>
 
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} />
+        <AuthModal initialMode={showAuthModal} onClose={() => setShowAuthModal(false)} />
       )}
       
       {showSettingsModal && user && (

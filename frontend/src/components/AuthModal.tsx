@@ -3,11 +3,12 @@ import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface AuthModalProps {
+  initialMode?: 'login' | 'register';
   onClose: () => void;
 }
 
-export function AuthModal({ onClose }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(true);
+export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
