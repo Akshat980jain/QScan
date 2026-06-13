@@ -10,7 +10,14 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    accountType?: string,
+    subscribeToNewsletter?: boolean,
+    agreeToTerms?: boolean
+  ) => Promise<void>;
   logout: () => void;
   updateProfile: (data: { name: string; email: string }) => Promise<void>;
 }
@@ -61,14 +68,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    accountType?: string,
+    subscribeToNewsletter?: boolean,
+    agreeToTerms?: boolean
+  ) => {
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          accountType,
+          subscribeToNewsletter,
+          agreeToTerms
+        }),
       });
 
       const data = await response.json();

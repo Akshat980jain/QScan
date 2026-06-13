@@ -16,13 +16,17 @@ export function AuthModal({ onClose }: AuthModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Custom Registration Fields
+  const [accountType, setAccountType] = useState('individual');
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(false);
+
   const { login, register } = useAuth();
-  // Add setActiveTab from props or context
   const [redirectToLibrary, setRedirectToLibrary] = useState(false);
 
   useEffect(() => {
     if (redirectToLibrary) {
-      // Custom event to notify AppContent to switch tab
       window.dispatchEvent(new CustomEvent('switchToLibrary'));
       onClose();
     }
@@ -39,7 +43,7 @@ export function AuthModal({ onClose }: AuthModalProps) {
         if (password !== confirmPassword) {
           throw new Error('Passwords do not match');
         }
-        await register(name, email, password);
+        await register(name, email, password, accountType, subscribeToNewsletter, agreeToTerms);
       }
       setRedirectToLibrary(true);
     } catch (error: any) {
@@ -90,6 +94,38 @@ export function AuthModal({ onClose }: AuthModalProps) {
                   placeholder="Enter your full name"
                   required
                 />
+              </div>
+            </div>
+          )}
+
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('individual')}
+                  className={`py-3 px-4 border rounded-xl font-medium transition-all text-sm flex flex-col items-center justify-center gap-1 ${
+                    accountType === 'individual'
+                      ? 'border-orange-500 bg-orange-50 text-orange-600 ring-2 ring-orange-500/20'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="font-semibold text-gray-800">Individual</span>
+                  <span className="text-[10px] text-gray-500 font-normal">For personal QR codes</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('business')}
+                  className={`py-3 px-4 border rounded-xl font-medium transition-all text-sm flex flex-col items-center justify-center gap-1 ${
+                    accountType === 'business'
+                      ? 'border-orange-500 bg-orange-50 text-orange-600 ring-2 ring-orange-500/20'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="font-semibold text-gray-800">Business</span>
+                  <span className="text-[10px] text-gray-500 font-normal">For brands & teams</span>
+                </button>
               </div>
             </div>
           )}
@@ -190,9 +226,39 @@ export function AuthModal({ onClose }: AuthModalProps) {
             </div>
           )}
 
+          {!isLogin && (
+            <div className="space-y-3 pt-2">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="mt-1 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  required
+                />
+                <span className="text-xs text-gray-600 leading-normal select-none">
+                  I agree to the <span className="text-orange-600 hover:underline">Terms of Service</span> and{' '}
+                  <span className="text-orange-600 hover:underline">Privacy Policy</span>.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={subscribeToNewsletter}
+                  onChange={(e) => setSubscribeToNewsletter(e.target.checked)}
+                  className="mt-1 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                />
+                <span className="text-xs text-gray-600 leading-normal select-none">
+                  Keep me updated with product features, tips, and special offers via email.
+                </span>
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={loading || (!isLogin && (!isPasswordValid || password !== confirmPassword))}
+            disabled={loading || (!isLogin && (!isPasswordValid || password !== confirmPassword || !agreeToTerms))}
             className="w-full py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}

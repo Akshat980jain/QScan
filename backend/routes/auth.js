@@ -18,7 +18,7 @@ const generateToken = (userId) => {
 // @access  Public
 router.post('/register', validateUserRegistration, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, accountType, subscribeToNewsletter, agreeToTerms } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -33,7 +33,10 @@ router.post('/register', validateUserRegistration, async (req, res) => {
     const user = new User({
       name,
       email,
-      password
+      password,
+      accountType,
+      subscribeToNewsletter,
+      agreeToTerms
     });
 
     await user.save();
@@ -49,6 +52,8 @@ router.post('/register', validateUserRegistration, async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        accountType: user.accountType,
+        subscribeToNewsletter: user.subscribeToNewsletter,
         createdAt: user.createdAt
       }
     });

@@ -33,6 +33,19 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date,
     default: null
+  },
+  accountType: {
+    type: String,
+    enum: ['individual', 'business'],
+    default: 'individual'
+  },
+  subscribeToNewsletter: {
+    type: Boolean,
+    default: false
+  },
+  agreeToTerms: {
+    type: Boolean,
+    required: [true, 'You must agree to the Terms of Service']
   }
 }, {
   timestamps: true

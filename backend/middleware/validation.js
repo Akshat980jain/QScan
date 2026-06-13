@@ -28,6 +28,17 @@ const validateUserRegistration = [
     .withMessage('Password must be at least 6 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('accountType')
+    .optional()
+    .isIn(['individual', 'business'])
+    .withMessage('Account type must be either individual or business'),
+  body('subscribeToNewsletter')
+    .optional()
+    .isBoolean()
+    .withMessage('Newsletter subscription preference must be a boolean'),
+  body('agreeToTerms')
+    .custom((value) => value === true)
+    .withMessage('You must agree to the Terms of Service and Privacy Policy'),
   handleValidationErrors
 ];
 
