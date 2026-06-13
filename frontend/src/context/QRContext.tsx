@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_URL } from '../config';
 
 export interface QRCode {
   _id: string;
@@ -25,7 +26,7 @@ export function QRProvider({ children }: { children: React.ReactNode }) {
   const saveQR = async (qrData: Omit<QRCode, '_id' | 'userId'>) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/qr-codes', {
+      const response = await fetch(`${API_URL}/api/qr-codes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +51,7 @@ export function QRProvider({ children }: { children: React.ReactNode }) {
   const deleteQR = async (id: string) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/qr-codes/${id}`, {
+      const response = await fetch(`${API_URL}/api/qr-codes/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,7 +79,7 @@ export function QRProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/qr-codes', {
+      const response = await fetch(`${API_URL}/api/qr-codes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
