@@ -5,6 +5,9 @@ interface User {
   _id: string;
   name: string;
   email: string;
+  accountType?: string;
+  subscribeToNewsletter?: boolean;
+  qrCodesCount?: number;
 }
 
 interface AuthContextType {
