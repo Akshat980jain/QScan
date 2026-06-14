@@ -122,7 +122,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setErrorMsg(null);
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     const root = window.document.documentElement;
     if (newTheme === 'dark') {
@@ -133,6 +133,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       if (systemTheme === 'dark') root.classList.add('dark');
       else root.classList.remove('dark');
+    }
+
+    try {
+      await updateProfile({ theme: newTheme });
+    } catch (error) {
+      console.error('Failed to auto-save theme change:', error);
     }
   };
 
@@ -156,7 +162,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     setLoading(true);
     clearMessages();
     try {
-      await updateProfile({ twoFactorEnabled: checked });
+      await updateProfile({ 
+        twoFactorEnabled: checked,
+        theme
+      });
       setSuccessMsg(`Two-Factor Authentication ${checked ? 'enabled' : 'disabled'} successfully!`);
     } catch (error: any) {
       console.error(error);
@@ -310,7 +319,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         defaultQRColor: defaultColor,
         defaultQRBgColor: defaultBgColor,
         defaultQREyeStyle: defaultEye,
-        defaultQRPatternStyle: defaultPattern
+        defaultQRPatternStyle: defaultPattern,
+        theme
       });
       setSuccessMsg('QR style defaults saved successfully!');
     } catch (error: any) {
