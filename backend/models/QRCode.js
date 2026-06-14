@@ -15,7 +15,7 @@ const qrCodeSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'QR code type is required'],
-    enum: ['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms'],
+    enum: ['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms', 'location', 'event', 'payment'],
     lowercase: true
   },
   content: {
@@ -73,6 +73,31 @@ const qrCodeSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isDynamic: {
+    type: Boolean,
+    default: false
+  },
+  targetUrl: {
+    type: String,
+    default: null
+  },
+  shortId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  customization: {
+    foregroundColor: { type: String, default: '#000000' },
+    backgroundColor: { type: String, default: '#FFFFFF' },
+    eyeStyle: { type: String, default: 'square' }, // square, circle, rounded
+    patternStyle: { type: String, default: 'square' }, // square, dot, line
+    logoImage: { type: String, default: null } // base64 or URL
+  },
+  workspaceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null
   }
 }, {
   timestamps: true
@@ -82,6 +107,8 @@ const qrCodeSchema = new mongoose.Schema({
 qrCodeSchema.index({ userId: 1, createdAt: -1 });
 qrCodeSchema.index({ userId: 1, type: 1 });
 qrCodeSchema.index({ userId: 1, name: 'text' });
+qrCodeSchema.index({ shortId: 1 }, { unique: true, sparse: true });
+qrCodeSchema.index({ workspaceId: 1 });
 
 // Virtual for formatted creation date
 qrCodeSchema.virtual('formattedDate').get(function () {

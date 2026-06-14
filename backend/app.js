@@ -13,6 +13,8 @@ const { generalLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const qrCodeRoutes = require('./routes/qrcodes');
 const scanHistoryRoutes = require('./routes/scanHistory');
+const redirectRoutes = require('./routes/redirect');
+const workspaceRoutes = require('./routes/workspaces');
 
 const app = express();
 
@@ -63,6 +65,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/qr-codes', qrCodeRoutes);
 app.use('/api/scan-history', scanHistoryRoutes);
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/r', redirectRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

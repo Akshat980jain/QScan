@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   QrCode, 
   Library, 
@@ -13,6 +13,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useQR } from '../context/QRContext';
+import { useDialog } from '../context/DialogContext';
 
 interface HeaderProps {
   activeTab: 'generate' | 'library';
@@ -24,8 +26,16 @@ interface HeaderProps {
 
 export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick, onScanClick }: HeaderProps) {
   const { user, logout } = useAuth();
+  const { workspaces, currentWorkspace, setCurrentWorkspace, createWorkspace, addWorkspaceMember } = useQR();
+  const { alert } = useDialog();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
+  const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const handleTabChange = (tab: 'generate' | 'library') => {
     setActiveTab(tab);
@@ -97,6 +107,86 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
           <div className="hidden lg:flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-3">
+                {/* Workspace Selector */}
+                <div className="relative mr-2">
+                  <button
+                    onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)}
+                    className="flex items-center space-x-2 px-4 py-2 border border-orange-200 rounded-xl hover:bg-orange-50 transition-all duration-300 text-sm font-medium text-gray-700 bg-white shadow-sm"
+                  >
+                    <span className="truncate max-w-[120px]">
+                      {currentWorkspace ? currentWorkspace.name : 'Personal Workspace'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </button>
+
+                  {isWorkspaceMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
+                        Workspaces
+                      </div>
+                      <div className="max-h-48 overflow-y-auto py-1">
+                        <button
+                          onClick={() => {
+                            setCurrentWorkspace(null);
+                            setIsWorkspaceMenuOpen(false);
+                          }}
+                          className={`flex items-center justify-between w-full px-4 py-2 text-sm text-left ${
+                            currentWorkspace === null
+                              ? 'bg-orange-50 text-orange-600 font-medium'
+                              : 'text-gray-700 hover:bg-orange-50'
+                          }`}
+                        >
+                          <span>Personal Workspace</span>
+                        </button>
+
+                        {workspaces.map((workspace) => (
+                          <button
+                            key={workspace._id}
+                            onClick={() => {
+                              setCurrentWorkspace(workspace);
+                              setIsWorkspaceMenuOpen(false);
+                            }}
+                            className={`flex items-center justify-between w-full px-4 py-2 text-sm text-left ${
+                              currentWorkspace?._id === workspace._id
+                                ? 'bg-orange-50 text-orange-600 font-medium'
+                                : 'text-gray-700 hover:bg-orange-50'
+                            }`}
+                          >
+                            <span className="truncate">{workspace.name}</span>
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full capitalize">
+                              {workspace.role}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className="border-t border-gray-100 pt-2 mt-1 px-2 space-y-1">
+                        <button
+                          onClick={() => {
+                            setShowCreateWorkspaceModal(true);
+                            setIsWorkspaceMenuOpen(false);
+                          }}
+                          className="flex items-center space-x-2 w-full px-3 py-2 text-xs text-orange-600 hover:bg-orange-50 rounded-lg font-medium transition-colors"
+                        >
+                          <span>+ Create Workspace</span>
+                        </button>
+                        
+                        {currentWorkspace && (currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin') && (
+                          <button
+                            onClick={() => {
+                              setShowInviteModal(true);
+                              setIsWorkspaceMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-2 w-full px-3 py-2 text-xs text-green-600 hover:bg-green-50 rounded-lg font-medium transition-colors"
+                          >
+                            <span>Invite Members</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Notifications */}
                 <button className="relative p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-all duration-300">
                   <Bell className="w-5 h-5" />
@@ -114,7 +204,7 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
                     </div>
                     <div className="text-left">
                       <div className="text-sm font-medium text-gray-800">{user.name}</div>
-                      <div className="text-xs text-gray-500">Premium User</div>
+                      <div className="text-xs text-gray-500">{user.accountType === 'business' ? 'Business Plan' : 'Free Plan'}</div>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -219,7 +309,7 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-800">{user.name}</div>
-                      <div className="text-xs text-gray-500">Premium User</div>
+                      <div className="text-xs text-gray-500">{user.accountType === 'business' ? 'Business Plan' : 'Free Plan'}</div>
                     </div>
                   </div>
                   <div className="mt-2 space-y-1">
@@ -266,9 +356,95 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
       {/* Click outside to close user menu */}
       {isUserMenuOpen && (
         <div 
-          className="fixed inset-0 bg-transparent lg:hidden z-40"
+          className="fixed inset-0 bg-transparent z-40"
           onClick={() => setIsUserMenuOpen(false)}
         />
+      )}
+
+      {/* Click outside to close workspace menu */}
+      {isWorkspaceMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-transparent z-40"
+          onClick={() => setIsWorkspaceMenuOpen(false)}
+        />
+      )}
+
+      {/* Create Workspace Modal */}
+      {showCreateWorkspaceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-orange-100 transform transition-all">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Create New Workspace</h3>
+            <input
+              type="text"
+              placeholder="e.g. Marketing Team"
+              value={newWorkspaceName}
+              onChange={(e) => setNewWorkspaceName(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent mb-6 text-sm"
+            />
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowCreateWorkspaceModal(false)}
+                className="px-4 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl transition-all font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (newWorkspaceName.trim()) {
+                    await createWorkspace(newWorkspaceName);
+                    setNewWorkspaceName('');
+                    setShowCreateWorkspaceModal(false);
+                  }
+                }}
+                className="px-4 py-2.5 bg-orange-600 text-white hover:bg-orange-700 rounded-xl transition-all font-medium text-sm shadow-md"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Member Modal */}
+      {showInviteModal && currentWorkspace && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-orange-100 transform transition-all">
+            <h3 className="text-xl font-bold text-gray-800 mb-1">Invite Member</h3>
+            <p className="text-xs text-gray-500 mb-4">Invite colleagues to collaborate on "{currentWorkspace.name}"</p>
+            <input
+              type="email"
+              placeholder="colleague@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent mb-6 text-sm"
+            />
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="px-4 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl transition-all font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (inviteEmail.trim()) {
+                    try {
+                      await addWorkspaceMember(currentWorkspace._id, inviteEmail);
+                      setInviteEmail('');
+                      setShowInviteModal(false);
+                      await alert('Invitation Sent', 'Invitation sent successfully!');
+                    } catch (err: any) {
+                      await alert('Invitation Failed', err.message || 'Failed to add member');
+                    }
+                  }
+                }}
+                className="px-4 py-2.5 bg-orange-600 text-white hover:bg-orange-700 rounded-xl transition-all font-medium text-sm shadow-md"
+              >
+                Invite
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </header>
   );

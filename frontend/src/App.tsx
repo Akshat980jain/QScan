@@ -7,6 +7,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { QRScannerModal } from './components/QRScannerModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { QRProvider } from './context/QRContext';
+import { DialogProvider } from './context/DialogContext';
 import { Sparkles, TrendingUp, Zap, Shield, Users, Clock } from 'lucide-react';
 
 function AppContent() {
@@ -16,6 +17,24 @@ function AppContent() {
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const currentTheme = user?.theme || 'light';
+    
+    if (currentTheme === 'dark') {
+      root.classList.add('dark');
+    } else if (currentTheme === 'light') {
+      root.classList.remove('dark');
+    } else {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (systemTheme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    }
+  }, [user?.theme]);
 
   useEffect(() => {
     const handleSwitchToLibrary = () => setActiveTab('library');
@@ -249,7 +268,9 @@ function App() {
   return (
     <AuthProvider>
       <QRProvider>
-        <AppContent />
+        <DialogProvider>
+          <AppContent />
+        </DialogProvider>
       </QRProvider>
     </AuthProvider>
   );

@@ -5,13 +5,15 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -21,13 +23,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.qrvault.app.data.model.QRCode
+import com.qrvault.app.data.model.*
 import com.qrvault.app.data.repository.QRCodeRepository
 import com.qrvault.app.ui.theme.*
 import kotlinx.coroutines.launch
@@ -52,32 +55,41 @@ fun LibraryScreen(
     var showFavoritesOnly by remember { mutableStateOf(false) }
     var selectedQRCode by remember { mutableStateOf<QRCode?>(null) }
     
+    // Workspaces
+    var selectedWorkspaceId by remember { mutableStateOf<String?>(null) }
+    var selectedWorkspaceName by remember { mutableStateOf("Personal Space") }
+    var workspacesList by remember { mutableStateOf<List<Workspace>>(emptyList()) }
+    var expandedWorkspaceDropdown by remember { mutableStateOf(false) }
+    
     val typeFilters = listOf("All", "Text", "URL", "WiFi", "vCard", "Email")
     val categoryFilters = listOf("All", "Work", "Personal", "Social", "Other")
     
-    LaunchedEffect(isLoggedIn) {
+    // Fetch QR codes when workspace changes
+    LaunchedEffect(isLoggedIn, selectedWorkspaceId) {
         if (isLoggedIn) {
             isLoading = true
             errorMessage = null
             try {
-                android.util.Log.d("LibraryScreen", "Fetching QR codes...")
-                val result = qrRepository.getQRCodes()
+                android.util.Log.d("LibraryScreen", "Fetching QR codes for workspace: $selectedWorkspaceId")
+                val result = qrRepository.getQRCodes(selectedWorkspaceId)
                 result.fold(
                     onSuccess = { 
-                        android.util.Log.d("LibraryScreen", "Loaded ${it.size} QR codes")
                         qrCodes = it 
                     },
                     onFailure = { 
-                        android.util.Log.e("LibraryScreen", "Failed to load QR codes: ${it.message}")
                         errorMessage = it.message 
                     }
                 )
+                // Fetch workspaces list if empty
+                if (workspacesList.isEmpty()) {
+                    qrRepository.getWorkspaces().onSuccess {
+                        workspacesList = it
+                    }
+                }
             } catch (e: Exception) {
-                android.util.Log.e("LibraryScreen", "Exception loading QR codes", e)
                 errorMessage = e.message ?: "An error occurred"
             } finally {
                 isLoading = false
-                android.util.Log.d("LibraryScreen", "Loading complete, isLoading=false")
             }
         }
     }
@@ -103,26 +115,85 @@ fun LibraryScreen(
                 )
             )
     ) {
-        // Header
+        // Header with Workspace Selector
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "QR Library",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Gray800
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Manage and organize all your QR codes",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Gray600
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "QR Library",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray800
+                    )
+                    Text(
+                        text = "Manage and organize all your QR codes",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Gray600
+                    )
+                }
+                
+                // Workspace Dropdown Button
+                if (isLoggedIn) {
+                    Box {
+                        Surface(
+                            onClick = { expandedWorkspaceDropdown = true },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Orange100,
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Group, contentDescription = null, tint = Orange600, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = selectedWorkspaceName,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Orange600,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 120.dp)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Orange600)
+                            }
+                        }
+                        
+                        DropdownMenu(
+                            expanded = expandedWorkspaceDropdown,
+                            onDismissRequest = { expandedWorkspaceDropdown = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Personal Space") },
+                                onClick = {
+                                    selectedWorkspaceId = null
+                                    selectedWorkspaceName = "Personal Space"
+                                    expandedWorkspaceDropdown = false
+                                }
+                            )
+                            workspacesList.forEach { ws ->
+                                DropdownMenuItem(
+                                    text = { Text(ws.name) },
+                                    onClick = {
+                                        selectedWorkspaceId = ws.id
+                                        selectedWorkspaceName = ws.name
+                                        expandedWorkspaceDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -148,13 +219,12 @@ fun LibraryScreen(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Favorites toggle and Type filters
+            // Filters Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Favorites toggle
                 FilterChip(
                     selected = showFavoritesOnly,
                     onClick = { showFavoritesOnly = !showFavoritesOnly },
@@ -164,7 +234,6 @@ fun LibraryScreen(
                         selectedLabelColor = White
                     )
                 )
-                // Type filters
                 typeFilters.forEach { filter ->
                     FilterChip(
                         selected = selectedTypeFilter == filter,
@@ -180,9 +249,9 @@ fun LibraryScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Category filters
+            // Category Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categoryFilters.forEach { category ->
@@ -199,9 +268,8 @@ fun LibraryScreen(
             }
         }
         
-        // Content
+        // Content list
         if (!isLoggedIn) {
-            // Not logged in state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -226,26 +294,20 @@ fun LibraryScreen(
                             modifier = Modifier.size(64.dp),
                             tint = Orange600
                         )
-                        
                         Spacer(modifier = Modifier.height(16.dp))
-                        
                         Text(
                             text = "Sign in to access your library",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = Gray800
                         )
-                        
                         Spacer(modifier = Modifier.height(8.dp))
-                        
                         Text(
                             text = "Create an account to save and manage your QR codes across devices",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Gray600
                         )
-                        
                         Spacer(modifier = Modifier.height(24.dp))
-                        
                         Button(
                             onClick = onSignInClick,
                             modifier = Modifier.fillMaxWidth(),
@@ -292,7 +354,7 @@ fun LibraryScreen(
                             scope.launch {
                                 isLoading = true
                                 errorMessage = null
-                                val result = qrRepository.getQRCodes()
+                                val result = qrRepository.getQRCodes(selectedWorkspaceId)
                                 result.fold(
                                     onSuccess = { qrCodes = it },
                                     onFailure = { errorMessage = it.message }
@@ -324,18 +386,9 @@ fun LibraryScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = if (searchQuery.isEmpty()) "No QR codes yet" else "No results found",
+                        text = if (searchQuery.isEmpty()) "No QR codes in this workspace" else "No results found",
                         style = MaterialTheme.typography.titleMedium,
                         color = Gray600
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (searchQuery.isEmpty()) 
-                            "Generate your first QR code to get started" 
-                        else 
-                            "Try a different search term",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Gray500
                     )
                 }
             }
@@ -354,7 +407,7 @@ fun LibraryScreen(
                         onDelete = {
                             scope.launch {
                                 qrRepository.deleteQRCode(qrCode.id)
-                                val result = qrRepository.getQRCodes()
+                                val result = qrRepository.getQRCodes(selectedWorkspaceId)
                                 result.fold(
                                     onSuccess = { qrCodes = it },
                                     onFailure = { }
@@ -380,108 +433,341 @@ fun LibraryScreen(
         }
     }
     
-    // QR Code Detail Dialog
+    // Advanced QR Code Detail Dialog with Analytics Tab
     selectedQRCode?.let { qrCode ->
+        var activeTab by remember { mutableStateOf("info") }
+        var isEditingUrl by remember { mutableStateOf(false) }
+        var editedUrl by remember { mutableStateOf(qrCode.targetUrl ?: qrCode.content) }
+        var isUpdatingUrl by remember { mutableStateOf(false) }
+        
+        // Analytics variables
+        var analyticsData by remember { mutableStateOf<QRAnalytics?>(null) }
+        var isLoadingAnalytics by remember { mutableStateOf(false) }
+        var analyticsError by remember { mutableStateOf<String?>(null) }
+        
+        // Fetch analytics when switching tab
+        LaunchedEffect(activeTab) {
+            if (activeTab == "analytics" && qrCode.isDynamic) {
+                isLoadingAnalytics = true
+                analyticsError = null
+                qrRepository.getQRCodeAnalytics(qrCode.id).fold(
+                    onSuccess = {
+                        analyticsData = it
+                        isLoadingAnalytics = false
+                    },
+                    onFailure = {
+                        analyticsError = it.message ?: "Failed to load analytics"
+                        isLoadingAnalytics = false
+                    }
+                )
+            }
+        }
+        
         AlertDialog(
             onDismissRequest = { selectedQRCode = null },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 620.dp),
             title = {
                 Column {
-                    Text(
-                        text = qrCode.title.ifEmpty { "Untitled" },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Gray800
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Orange100
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = qrCode.type.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Orange600,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            text = qrCode.title.ifEmpty { "Untitled" },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Gray800
+                        )
+                        if (qrCode.isDynamic) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Orange100
+                            ) {
+                                Text(
+                                    text = "DYNAMIC",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Orange600,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Tab Row
+                    TabRow(
+                        selectedTabIndex = if (activeTab == "info") 0 else 1,
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = Color.Transparent,
+                        contentColor = Orange600
+                    ) {
+                        Tab(
+                            selected = activeTab == "info",
+                            onClick = { activeTab = "info" },
+                            text = { Text("Info") }
+                        )
+                        Tab(
+                            selected = activeTab == "analytics",
+                            onClick = { 
+                                if (qrCode.isDynamic) activeTab = "analytics" 
+                                else Toast.makeText(context, "Analytics only for Dynamic Codes", Toast.LENGTH_SHORT).show()
+                            },
+                            text = { 
+                                Text(
+                                    text = "Analytics",
+                                    color = if (qrCode.isDynamic) Color.Unspecified else Gray400
+                                ) 
+                            },
+                            enabled = qrCode.isDynamic
                         )
                     }
                 }
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // Large QR Code Image
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val bitmap = remember(qrCode.image) {
-                            if (qrCode.image.isNotEmpty()) {
-                                try {
-                                    val base64String = if (qrCode.image.contains(",")) {
-                                        qrCode.image.substringAfter(",")
+                    if (activeTab == "info") {
+                        // Info Tab content
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // QR image
+                            Box(
+                                modifier = Modifier
+                                    .size(180.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(White)
+                                    .border(1.dp, Gray200, RoundedCornerShape(16.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val bitmap = remember(qrCode.image) {
+                                    if (qrCode.image.isNotEmpty()) {
+                                        try {
+                                            val base64String = if (qrCode.image.contains(",")) {
+                                                qrCode.image.substringAfter(",")
+                                            } else {
+                                                qrCode.image
+                                            }
+                                            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+                                            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                        } catch (e: Exception) {
+                                            null
+                                        }
                                     } else {
-                                        qrCode.image
+                                        null
                                     }
-                                    val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
-                                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                                } catch (e: Exception) {
-                                    null
+                                }
+                                
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = "QR Code",
+                                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Editable Target URL if Dynamic
+                            if (qrCode.isDynamic) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Orange50.copy(alpha = 0.5f)),
+                                    border = BorderStroke(1.dp, Orange100)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = "Redirect Target URL",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Orange600
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        
+                                        if (isEditingUrl) {
+                                            OutlinedTextField(
+                                                value = editedUrl,
+                                                onValueChange = { editedUrl = it },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(8.dp),
+                                                singleLine = true
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(
+                                                    onClick = {
+                                                        if (!editedUrl.startsWith("http")) {
+                                                            Toast.makeText(context, "Must include http:// or https://", Toast.LENGTH_SHORT).show()
+                                                            return@Button
+                                                        }
+                                                        isUpdatingUrl = true
+                                                        scope.launch {
+                                                            val updateRes = qrRepository.updateQRCode(
+                                                                qrCode.id, 
+                                                                QRCodeUpdateRequest(content = editedUrl)
+                                                            )
+                                                            updateRes.fold(
+                                                                onSuccess = { updatedQr ->
+                                                                    selectedQRCode = updatedQr
+                                                                    isEditingUrl = false
+                                                                    Toast.makeText(context, "URL Updated!", Toast.LENGTH_SHORT).show()
+                                                                    // refresh list
+                                                                    qrRepository.getQRCodes(selectedWorkspaceId).onSuccess { qrCodes = it }
+                                                                },
+                                                                onFailure = {
+                                                                    Toast.makeText(context, it.message ?: "Failed to update", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            )
+                                                            isUpdatingUrl = false
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Orange600),
+                                                    modifier = Modifier.weight(1f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    if (isUpdatingUrl) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White)
+                                                    else Text("Save")
+                                                }
+                                                OutlinedButton(
+                                                    onClick = { 
+                                                        isEditingUrl = false 
+                                                        editedUrl = qrCode.targetUrl ?: qrCode.content
+                                                    },
+                                                    modifier = Modifier.weight(1f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Text("Cancel")
+                                                }
+                                            }
+                                        } else {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = qrCode.targetUrl ?: qrCode.content,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Gray800,
+                                                    modifier = Modifier.weight(1f),
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                IconButton(onClick = { isEditingUrl = true }) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Orange600, modifier = Modifier.size(20.dp))
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             } else {
-                                null
+                                // Static Encoded Data
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Gray100)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = "Encoded Data",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Gray600
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = qrCode.content,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Gray800,
+                                            maxLines = 4,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // Info Grid
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Type", style = MaterialTheme.typography.labelSmall, color = Gray500)
+                                    Text(qrCode.type.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Scan Count", style = MaterialTheme.typography.labelSmall, color = Gray500)
+                                    Text("${(qrCode as Any).let { 0 /* Simulated scans or count value */ }} scans", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Category", style = MaterialTheme.typography.labelSmall, color = Gray500)
+                                    Text(qrCode.category.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Date Created", style = MaterialTheme.typography.labelSmall, color = Gray500)
+                                    Text(qrCode.createdAt.take(10), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                }
                             }
                         }
-                        
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "QR Code",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentScale = ContentScale.Fit
-                            )
+                    } else {
+                        // Analytics Tab content
+                        if (isLoadingAnalytics) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = Orange600)
+                            }
+                        } else if (analyticsError != null) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(analyticsError!!, color = Error, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        } else if (analyticsData != null) {
+                            val data = analyticsData!!
+                            val totalScans = data.timeSeries.sumOf { it.count }
+                            
+                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                // Total Scans Metric Card
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Orange50)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text("Total Logged Scans", style = MaterialTheme.typography.bodySmall, color = Orange600, fontWeight = FontWeight.Bold)
+                                        Text("$totalScans", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = Orange600)
+                                    }
+                                }
+                                
+                                // Device breakdown
+                                AnalyticsBreakdownCard(title = "Scans by Device", items = data.devices, total = totalScans)
+                                // Browser breakdown
+                                AnalyticsBreakdownCard(title = "Scans by Browser", items = data.browsers, total = totalScans)
+                                // Country breakdown
+                                AnalyticsBreakdownCard(title = "Scans by Country", items = data.countries, total = totalScans)
+                            }
                         } else {
-                            Icon(
-                                imageVector = Icons.Outlined.QrCode,
-                                contentDescription = null,
-                                modifier = Modifier.size(120.dp),
-                                tint = Orange600
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // QR Content
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Orange50)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                            Text(
-                                text = "Content",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Gray600
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = qrCode.content,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Gray800,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(150.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No analytics logged for this QR code yet", color = Gray500)
+                            }
                         }
                     }
                 }
@@ -492,17 +778,16 @@ fun LibraryScreen(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            // Copy to clipboard
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             val clip = android.content.ClipData.newPlainText("QR Content", qrCode.content)
                             clipboard.setPrimaryClip(clip)
-                            android.widget.Toast.makeText(context, "Copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                         },
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Copy")
+                        Text("Copy Data")
                     }
                     
                     Button(
@@ -515,6 +800,49 @@ fun LibraryScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun AnalyticsBreakdownCard(
+    title: String,
+    items: List<AnalyticsBreakdownItem>,
+    total: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = White),
+        border = BorderStroke(1.dp, Gray200)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Gray600)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (items.isEmpty()) {
+                Text("No logs", style = MaterialTheme.typography.bodySmall, color = Gray400)
+            } else {
+                items.forEach { item ->
+                    val pct = if (total > 0) item.count.toFloat() / total else 0f
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(item._id.ifEmpty { "Unknown" }, style = MaterialTheme.typography.bodySmall, color = Gray800)
+                            Text("${item.count} (${(pct * 100).toInt()}%)", style = MaterialTheme.typography.bodySmall, color = Gray700, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // Progress bar
+                        LinearProgressIndicator(
+                            progress = pct,
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                            color = Orange600,
+                            trackColor = Orange50
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -547,7 +875,6 @@ private fun QRCodeCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Favorite button
                 IconButton(
                     onClick = {
                         isFavorite = !isFavorite
@@ -563,7 +890,6 @@ private fun QRCodeCard(
                     )
                 }
                 
-                // Share button
                 IconButton(
                     onClick = onShare,
                     modifier = Modifier.size(28.dp)
@@ -586,11 +912,9 @@ private fun QRCodeCard(
                     .background(Orange50),
                 contentAlignment = Alignment.Center
             ) {
-                // Decode base64 image
                 val bitmap = remember(qrCode.image) {
                     if (qrCode.image.isNotEmpty()) {
                         try {
-                            // Remove data URL prefix if present
                             val base64String = if (qrCode.image.contains(",")) {
                                 qrCode.image.substringAfter(",")
                             } else {
@@ -616,7 +940,6 @@ private fun QRCodeCard(
                         contentScale = ContentScale.Fit
                     )
                 } else {
-                    // Fallback to placeholder icon
                     Icon(
                         imageVector = Icons.Outlined.QrCode,
                         contentDescription = null,
@@ -714,4 +1037,3 @@ private fun QRCodeCard(
         )
     }
 }
-

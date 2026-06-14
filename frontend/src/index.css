@@ -3,3 +3,117 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Dark Mode General Overrides */
+.dark body, .dark #root {
+  background-color: #0c0a09 !important; /* Stone-950 background */
+  color: #f4f4f5 !important; /* Zinc-100 text */
+}
+
+.dark main {
+  background-color: #0c0a09 !important;
+}
+
+/* Background gradient for main section */
+.dark .min-h-screen {
+  background-image: radial-gradient(circle at top left, #1c1917, #0c0a09, #1c1917) !important;
+}
+
+/* Header Override */
+.dark header {
+  background-color: rgba(12, 10, 9, 0.9) !important;
+  border-color: #27272a !important; /* Zinc-800 */
+}
+
+/* Common Card Backgrounds */
+.dark .bg-white, .dark .bg-white\/80 {
+  background-color: #18181b !important; /* Zinc-900 */
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+}
+
+/* Inputs and Forms */
+.dark input, .dark select, .dark textarea {
+  background-color: #09090b !important; /* Zinc-950 */
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #52525b !important; /* Zinc-600 */
+}
+
+/* Gray Panels */
+.dark .bg-gray-50, .dark .bg-zinc-50 {
+  background-color: #09090b !important;
+  border-color: #27272a !important;
+}
+
+/* Text Overrides */
+.dark .text-gray-800, .dark .text-zinc-800, .dark .text-gray-700, .dark .text-zinc-700 {
+  color: #e4e4e7 !important; /* Zinc-200 */
+}
+
+.dark .text-gray-650, .dark .text-zinc-650, .dark .text-gray-550, .dark .text-zinc-550 {
+  color: #a1a1aa !important; /* Zinc-400 */
+}
+
+.dark .text-gray-500, .dark .text-zinc-500 {
+  color: #71717a !important; /* Zinc-500 */
+}
+
+.dark .text-gray-900, .dark .text-zinc-900 {
+  color: #fafafa !important; /* Zinc-50 */
+}
+
+/* Hover effects */
+.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-zinc-50:hover, .dark .hover\:bg-orange-50:hover {
+  background-color: #27272a !important; /* Zinc-800 */
+  color: #fafafa !important;
+}
+
+.dark .hover\:bg-gray-100:hover, .dark .hover\:bg-zinc-100:hover {
+  background-color: #27272a !important;
+}
+
+.dark .border-gray-200, .dark .border-zinc-200, .dark .border-orange-200, .dark .border-gray-100, .dark .border-zinc-100 {
+  border-color: #27272a !important;
+}
+
+/* QR Code Display Card in dark mode */
+.dark .bg-gray-100 {
+  background-color: #18181b !important;
+}
+
+/* Subtitles/Sublabels */
+.dark .text-orange-600 {
+  color: #f97316 !important; /* Orange-500 for bright dark theme accent */
+}
+
+.dark .text-orange-500 {
+  color: #f97316 !important;
+}
+
+/* Library card elements */
+.dark .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: #27272a !important;
+}
+
+/* Custom Modal Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

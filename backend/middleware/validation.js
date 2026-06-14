@@ -64,6 +64,14 @@ const validateUserUpdate = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email'),
+  body('theme')
+    .optional()
+    .isIn(['light', 'dark', 'system'])
+    .withMessage('Theme must be light, dark, or system'),
+  body('twoFactorEnabled')
+    .optional()
+    .isBoolean()
+    .withMessage('2FA preference must be a boolean'),
   handleValidationErrors
 ];
 
@@ -74,7 +82,7 @@ const validateQRCode = [
     .isLength({ min: 1, max: 100 })
     .withMessage('Name must be between 1 and 100 characters'),
   body('type')
-    .isIn(['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms'])
+    .isIn(['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms', 'location', 'event', 'payment'])
     .withMessage('Invalid QR code type'),
   body('content')
     .isLength({ min: 1, max: 2000 })

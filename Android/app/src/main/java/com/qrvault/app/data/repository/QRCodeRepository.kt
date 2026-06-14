@@ -9,10 +9,10 @@ class QRCodeRepository(private val context: Context) {
     private val apiService = RetrofitClient.apiService
     private val authRepository = AuthRepository(context)
     
-    suspend fun getQRCodes(): Result<List<QRCode>> {
+    suspend fun getQRCodes(workspaceId: String? = null): Result<List<QRCode>> {
         return try {
             val token = authRepository.getToken()
-            android.util.Log.d("QRCodeRepository", "getQRCodes called, token present: ${token != null}")
+            android.util.Log.d("QRCodeRepository", "getQRCodes called with workspaceId=$workspaceId, token present: ${token != null}")
             
             if (token == null) {
                 android.util.Log.e("QRCodeRepository", "No token found")
@@ -20,7 +20,7 @@ class QRCodeRepository(private val context: Context) {
             }
             
             android.util.Log.d("QRCodeRepository", "Fetching QR codes...")
-            val response = apiService.getQRCodes("Bearer $token")
+            val response = apiService.getQRCodes("Bearer $token", workspaceId)
             android.util.Log.d("QRCodeRepository", "Response code: ${response.code()}")
             android.util.Log.d("QRCodeRepository", "Response successful: ${response.isSuccessful}")
             
@@ -182,6 +182,66 @@ class QRCodeRepository(private val context: Context) {
                 Result.success(Unit)
             } else {
                 Result.failure(Exception(response.body()?.message ?: "Failed to clear history"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getWorkspaces(): Result<List<Workspace>> {
+        return try {
+            val token = authRepository.getToken() ?: return Result.failure(Exception("Not logged in"))
+            val response = apiService.getWorkspaces("Bearer $token")
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true && body.workspaces != null) {
+                Result.success(body.workspaces)
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to fetch workspaces"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createWorkspace(name: String): Result<Workspace> {
+        return try {
+            val token = authRepository.getToken() ?: return Result.failure(Exception("Not logged in"))
+            val response = apiService.createWorkspace("Bearer $token", CreateWorkspaceRequest(name))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true && body.workspace != null) {
+                Result.success(body.workspace)
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to create workspace"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addWorkspaceMember(workspaceId: String, email: String, role: String): Result<Unit> {
+        return try {
+            val token = authRepository.getToken() ?: return Result.failure(Exception("Not logged in"))
+            val response = apiService.addWorkspaceMember("Bearer $token", workspaceId, AddMemberRequest(email, role))
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to add member"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getQRCodeAnalytics(id: String): Result<QRAnalytics> {
+        return try {
+            val token = authRepository.getToken() ?: return Result.failure(Exception("Not logged in"))
+            val response = apiService.getQRCodeAnalytics("Bearer $token", id)
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true && body.analytics != null) {
+                Result.success(body.analytics)
+            } else {
+                Result.failure(Exception(body?.message ?: "Failed to fetch analytics"))
             }
         } catch (e: Exception) {
             Result.failure(e)

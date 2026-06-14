@@ -2,6 +2,14 @@ package com.qrvault.app.data.model
 
 import com.google.gson.annotations.SerializedName
 
+data class QRCodeCustomization(
+    val foregroundColor: String? = null,
+    val backgroundColor: String? = null,
+    val eyeStyle: String? = null,
+    val patternStyle: String? = null,
+    val logoImage: String? = null
+)
+
 data class QRCode(
     @SerializedName("_id")
     val id: String = "",
@@ -20,7 +28,12 @@ data class QRCode(
     val imageUrl: String? = null,
     val userId: String = "",
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    val isDynamic: Boolean = false,
+    val targetUrl: String? = null,
+    val shortId: String? = null,
+    val workspaceId: String? = null,
+    val customization: QRCodeCustomization? = null
 )
 
 data class QRCodeRequest(
@@ -33,7 +46,11 @@ data class QRCodeRequest(
     val foregroundColor: String = "#000000",
     val backgroundColor: String = "#FFFFFF",
     val includeMargin: Boolean = true,
-    val logo: String? = null
+    val logo: String? = null,
+    val isDynamic: Boolean = false,
+    val targetUrl: String? = null,
+    val workspaceId: String? = null,
+    val customization: QRCodeCustomization? = null
 )
 
 data class QRCodeUpdateRequest(
@@ -41,7 +58,9 @@ data class QRCodeUpdateRequest(
     val content: String? = null,
     val type: String? = null,
     val category: String? = null,
-    val image: String? = null
+    val image: String? = null,
+    val workspaceId: String? = null,
+    val customization: QRCodeCustomization? = null
 )
 
 data class QRCodeResponse(

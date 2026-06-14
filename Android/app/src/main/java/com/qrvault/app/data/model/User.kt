@@ -9,7 +9,14 @@ data class User(
     val email: String = "",
     val qrCodesCount: Int = 0,
     val createdAt: String = "",
-    val token: String = ""
+    val token: String = "",
+    val accountType: String = "individual",
+    val subscribeToNewsletter: Boolean = false,
+    val receiveNotifications: Boolean = true,
+    val defaultQRColor: String? = null,
+    val defaultQRBgColor: String? = null,
+    val defaultQREyeStyle: String? = null,
+    val defaultQRPatternStyle: String? = null
 )
 
 data class LoginRequest(

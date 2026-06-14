@@ -30,7 +30,10 @@ interface ApiService {
     
     // QR Code endpoints
     @GET("api/qr-codes")
-    suspend fun getQRCodes(@Header("Authorization") token: String): Response<QRCodeResponse>
+    suspend fun getQRCodes(
+        @Header("Authorization") token: String,
+        @Query("workspaceId") workspaceId: String? = null
+    ): Response<QRCodeResponse>
     
     @GET("api/qr-codes/{id}")
     suspend fun getQRCode(
@@ -43,6 +46,30 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: QRCodeRequest
     ): Response<QRCodeResponse>
+
+    // Workspace endpoints
+    @GET("api/workspaces")
+    suspend fun getWorkspaces(@Header("Authorization") token: String): Response<WorkspaceResponse>
+    
+    @POST("api/workspaces")
+    suspend fun createWorkspace(
+        @Header("Authorization") token: String,
+        @Body request: CreateWorkspaceRequest
+    ): Response<WorkspaceResponse>
+    
+    @POST("api/workspaces/{id}/members")
+    suspend fun addWorkspaceMember(
+        @Header("Authorization") token: String,
+        @Path("id") workspaceId: String,
+        @Body request: AddMemberRequest
+    ): Response<WorkspaceResponse>
+    
+    // QR Code Analytics endpoint
+    @GET("api/qr-codes/{id}/analytics")
+    suspend fun getQRCodeAnalytics(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Response<QRAnalyticsResponse>
     
     @PUT("api/qr-codes/{id}")
     suspend fun updateQRCode(

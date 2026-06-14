@@ -43,6 +43,37 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  defaultQRColor: {
+    type: String,
+    default: '#000000'
+  },
+  defaultQRBgColor: {
+    type: String,
+    default: '#FFFFFF'
+  },
+  defaultQREyeStyle: {
+    type: String,
+    enum: ['square', 'circle', 'rounded'],
+    default: 'square'
+  },
+  defaultQRPatternStyle: {
+    type: String,
+    enum: ['square', 'dot', 'line'],
+    default: 'square'
+  },
+  receiveNotifications: {
+    type: Boolean,
+    default: true
+  },
+  theme: {
+    type: String,
+    enum: ['light', 'dark', 'system'],
+    default: 'light'
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
   agreeToTerms: {
     type: Boolean,
     required: [true, 'You must agree to the Terms of Service']
