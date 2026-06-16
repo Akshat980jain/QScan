@@ -60,7 +60,7 @@ jobs:
       # No checkout needed — just fire the deploy hook
       - name: Trigger Render Deploy Hook
         env:
-          DEPLOY_HOOK: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+          DEPLOY_HOOK: ${{ secrets.QSCANBACKEND }}
         run: |
           if [ -z "$DEPLOY_HOOK" ]; then
             echo "⚠️  RENDER_BACKEND_DEPLOY_HOOK secret is not set — skipping deploy."
