@@ -65,13 +65,19 @@ jobs:
     steps:
       # No checkout needed — just fire the deploy hook
       - name: Trigger Render Deploy Hook
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
         run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "⚠️  RENDER_FRONTEND_DEPLOY_HOOK secret is not set — skipping deploy."
+            echo "    Add it in: GitHub → Settings → Secrets → Actions"
+            exit 0
+          fi
           echo "🚀 Triggering frontend deployment on Render..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}")
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$DEPLOY_HOOK")
           if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 201 ]; then
-            echo "✅ Render deploy hook triggered successfully (HTTP $RESPONSE)"
+            echo "✅ Deploy hook triggered successfully (HTTP $RESPONSE)"
           else
-            echo "❌ Render deploy hook failed with HTTP $RESPONSE"
+            echo "❌ Deploy hook returned unexpected HTTP $RESPONSE"
             exit 1
           fi
