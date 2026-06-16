@@ -23,6 +23,7 @@ class AuthRepository(private val context: Context) {
         private val USER_ID_KEY = stringPreferencesKey("user_id")
         private val USER_NAME_KEY = stringPreferencesKey("user_name")
         private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
+        private val THEME_KEY = stringPreferencesKey("app_theme")
     }
     
     val token: Flow<String?> = context.dataStore.data.map { preferences ->
@@ -35,6 +36,16 @@ class AuthRepository(private val context: Context) {
     
     val userEmail: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[USER_EMAIL_KEY]
+    }
+
+    val appTheme: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[THEME_KEY] ?: "system"
+    }
+    
+    suspend fun saveTheme(theme: String) {
+        context.dataStore.edit { preferences ->
+            preferences[THEME_KEY] = theme
+        }
     }
     
     suspend fun getToken(): String? {

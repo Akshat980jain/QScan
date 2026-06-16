@@ -22,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,7 +67,6 @@ fun ScannerScreen(
     onSignInClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val qrRepository = remember { QRCodeRepository(context) }
     val scope = rememberCoroutineScope()
     
@@ -127,10 +129,10 @@ fun ScannerScreen(
                                 contentColor = Color.White
                             )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back"
-                            )
+                             Icon(
+                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                 contentDescription = "Back"
+                             )
                         }
                         
                         Text(
@@ -215,7 +217,7 @@ fun ScannerScreen(
                             // Select from Library Button
                             if (isLoggedIn) {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = Color.White.copy(alpha = 0.3f))
+                                 HorizontalDivider(color = Color.White.copy(alpha = 0.3f))
                                 Spacer(modifier = Modifier.height(16.dp))
                                 
                                 OutlinedButton(
@@ -763,7 +765,6 @@ private fun CameraPreview(
     onQRCodeScanned: (String) -> Unit,
     isFlashOn: Boolean
 ) {
-    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val barcodeScanner = remember { BarcodeScanning.getClient() }
@@ -789,7 +790,13 @@ private fun CameraPreview(
                     }
                     
                     val imageAnalysis = ImageAnalysis.Builder()
-                        .setTargetResolution(Size(1280, 720))
+                        .setResolutionSelector(
+                            ResolutionSelector.Builder()
+                                .setResolutionStrategy(
+                                    ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER)
+                                )
+                                .build()
+                        )
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .also { analysis ->

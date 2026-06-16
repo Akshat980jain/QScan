@@ -3,15 +3,20 @@ package com.qrvault.app.ui.screens
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,8 +44,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LibraryScreen(
     isLoggedIn: Boolean,
-    onSignInClick: () -> Unit,
-    onQRCodeClick: (String) -> Unit
+    onSignInClick: () -> Unit
 ) {
     val context = LocalContext.current
     val qrRepository = remember { QRCodeRepository(context) }
@@ -106,12 +110,27 @@ fun LibraryScreen(
         matchesSearch && matchesType && matchesCategory && matchesFavorite
     }
     
+    val isDark = isSystemInDarkTheme()
+    val gradientColors = if (isDark) {
+        listOf(
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        )
+    } else {
+        listOf(
+            Orange50,
+            White,
+            Orange100.copy(alpha = 0.3f)
+        )
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Orange50, White, Orange100.copy(alpha = 0.5f))
+                    colors = gradientColors
                 )
             )
     ) {
@@ -131,12 +150,12 @@ fun LibraryScreen(
                         text = "QR Library",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Gray800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Manage and organize all your QR codes",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Gray600
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
@@ -146,25 +165,25 @@ fun LibraryScreen(
                         Surface(
                             onClick = { expandedWorkspaceDropdown = true },
                             shape = RoundedCornerShape(12.dp),
-                            color = Orange100,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.padding(start = 8.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Group, contentDescription = null, tint = Orange600, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = selectedWorkspaceName,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Orange600,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.widthIn(max = 120.dp)
                                 )
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Orange600)
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
                         }
                         
@@ -214,7 +233,20 @@ fun LibraryScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = Orange600,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLeadingIconColor = Orange600,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTrailingIconColor = Orange600,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedBorderColor = Orange600,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    cursorColor = Orange600
+                )
             )
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -260,8 +292,10 @@ fun LibraryScreen(
                         onClick = { selectedCategoryFilter = category },
                         label = { Text(category) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Gray800,
-                            selectedLabelColor = White
+                            selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -279,8 +313,12 @@ fun LibraryScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -299,13 +337,13 @@ fun LibraryScreen(
                             text = "Sign in to access your library",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = Gray800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Create an account to save and manage your QR codes across devices",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Gray600
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(
@@ -346,7 +384,7 @@ fun LibraryScreen(
                     Text(
                         text = errorMessage ?: "Something went wrong",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Gray600
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
@@ -382,13 +420,13 @@ fun LibraryScreen(
                         imageVector = Icons.Outlined.QrCode,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = Gray400
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = if (searchQuery.isEmpty()) "No QR codes in this workspace" else "No results found",
                         style = MaterialTheme.typography.titleMedium,
-                        color = Gray600
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -414,7 +452,7 @@ fun LibraryScreen(
                                 )
                             }
                         },
-                        onFavoriteToggle = { isFavorite ->
+                        onFavoriteToggle = { _ ->
                             scope.launch {
                                 qrRepository.toggleFavorite(qrCode.id)
                             }
@@ -477,18 +515,18 @@ fun LibraryScreen(
                             text = qrCode.title.ifEmpty { "Untitled" },
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Gray800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (qrCode.isDynamic) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = Orange100
+                                color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
                                     text = "DYNAMIC",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Orange600,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
@@ -517,7 +555,7 @@ fun LibraryScreen(
                             text = { 
                                 Text(
                                     text = "Analytics",
-                                    color = if (qrCode.isDynamic) Color.Unspecified else Gray400
+                                    color = if (qrCode.isDynamic) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 ) 
                             },
                             enabled = qrCode.isDynamic
@@ -542,8 +580,8 @@ fun LibraryScreen(
                                 modifier = Modifier
                                     .size(180.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(White)
-                                    .border(1.dp, Gray200, RoundedCornerShape(16.dp)),
+                                    .background(if (isDark) Gray800 else White)
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.2f else 0.5f), RoundedCornerShape(16.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 val bitmap = remember(qrCode.image) {
@@ -580,15 +618,15 @@ fun LibraryScreen(
                             if (qrCode.isDynamic) {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Orange50.copy(alpha = 0.5f)),
-                                    border = BorderStroke(1.dp, Orange100)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
                                             text = "Redirect Target URL",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = Orange600
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         
@@ -598,7 +636,13 @@ fun LibraryScreen(
                                                 onValueChange = { editedUrl = it },
                                                 modifier = Modifier.fillMaxWidth(),
                                                 shape = RoundedCornerShape(8.dp),
-                                                singleLine = true
+                                                singleLine = true,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                                    focusedBorderColor = Orange600,
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                                )
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -656,7 +700,7 @@ fun LibraryScreen(
                                                 Text(
                                                     text = qrCode.targetUrl ?: qrCode.content,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = Gray800,
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     modifier = Modifier.weight(1f),
                                                     maxLines = 2,
                                                     overflow = TextOverflow.Ellipsis
@@ -672,19 +716,19 @@ fun LibraryScreen(
                                 // Static Encoded Data
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Gray100)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
                                             text = "Encoded Data",
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = Gray600
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = qrCode.content,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = Gray800,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 4,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -697,12 +741,12 @@ fun LibraryScreen(
                             // Info Grid
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Type", style = MaterialTheme.typography.labelSmall, color = Gray500)
-                                    Text(qrCode.type.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                    Text("Type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                    Text(qrCode.type.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Scan Count", style = MaterialTheme.typography.labelSmall, color = Gray500)
-                                    Text("${(qrCode as Any).let { 0 /* Simulated scans or count value */ }} scans", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                    Text("Scan Count", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                    Text("${(qrCode as Any).let { 0 /* Simulated scans or count value */ }} scans", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             
@@ -710,12 +754,12 @@ fun LibraryScreen(
                             
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Category", style = MaterialTheme.typography.labelSmall, color = Gray500)
-                                    Text(qrCode.category.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                    Text("Category", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                    Text(qrCode.category.uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Date Created", style = MaterialTheme.typography.labelSmall, color = Gray500)
-                                    Text(qrCode.createdAt.take(10), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Gray700)
+                                    Text("Date Created", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                    Text(qrCode.createdAt.take(10), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -743,14 +787,14 @@ fun LibraryScreen(
                                 // Total Scans Metric Card
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = Orange50)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(16.dp).fillMaxWidth(),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Text("Total Logged Scans", style = MaterialTheme.typography.bodySmall, color = Orange600, fontWeight = FontWeight.Bold)
-                                        Text("$totalScans", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = Orange600)
+                                        Text("Total Logged Scans", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                        Text("$totalScans", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                                 
@@ -766,7 +810,7 @@ fun LibraryScreen(
                                 modifier = Modifier.fillMaxWidth().height(150.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("No analytics logged for this QR code yet", color = Gray500)
+                                Text("No analytics logged for this QR code yet", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                             }
                         }
                     }
@@ -809,17 +853,21 @@ private fun AnalyticsBreakdownCard(
     items: List<AnalyticsBreakdownItem>,
     total: Int
 ) {
+    val isDark = isSystemInDarkTheme()
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = White),
-        border = BorderStroke(1.dp, Gray200)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
+        )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Gray600)
+            Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
             
             if (items.isEmpty()) {
-                Text("No logs", style = MaterialTheme.typography.bodySmall, color = Gray400)
+                Text("No logs", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
             } else {
                 items.forEach { item ->
                     val pct = if (total > 0) item.count.toFloat() / total else 0f
@@ -828,16 +876,16 @@ private fun AnalyticsBreakdownCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(item._id.ifEmpty { "Unknown" }, style = MaterialTheme.typography.bodySmall, color = Gray800)
-                            Text("${item.count} (${(pct * 100).toInt()}%)", style = MaterialTheme.typography.bodySmall, color = Gray700, fontWeight = FontWeight.Bold)
+                            Text(item._id.ifEmpty { "Unknown" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                            Text("${item.count} (${(pct * 100).toInt()}%)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         // Progress bar
                         LinearProgressIndicator(
-                            progress = pct,
+                            progress = { pct },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                             color = Orange600,
-                            trackColor = Orange50
+                            trackColor = if (isDark) Orange500.copy(alpha = 0.15f) else Orange50
                         )
                     }
                 }
@@ -857,12 +905,17 @@ private fun QRCodeCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var isFavorite by remember(qrCode.isFavorite) { mutableStateOf(qrCode.isFavorite) }
+    val isDark = isSystemInDarkTheme()
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = onClick
     ) {
         Column(
@@ -885,7 +938,7 @@ private fun QRCodeCard(
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) Error else Gray400,
+                        tint = if (isFavorite) Error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -897,7 +950,7 @@ private fun QRCodeCard(
                     Icon(
                         imageVector = Icons.Outlined.Share,
                         contentDescription = "Share",
-                        tint = Gray500,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -909,7 +962,7 @@ private fun QRCodeCard(
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Orange50),
+                    .background(if (isDark) Orange500.copy(alpha = 0.15f) else Orange50),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = remember(qrCode.image) {
@@ -955,7 +1008,7 @@ private fun QRCodeCard(
                 text = qrCode.title.ifEmpty { "Untitled" },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = Gray800,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -969,12 +1022,12 @@ private fun QRCodeCard(
                 // Type badge
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Orange100
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
                         text = qrCode.type.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Orange600,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
@@ -985,12 +1038,12 @@ private fun QRCodeCard(
                 if (qrCode.category != "general") {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = Gray200
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = qrCode.category.replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.labelSmall,
-                            color = Gray600,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
@@ -1005,7 +1058,7 @@ private fun QRCodeCard(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = "Delete",
-                        tint = Gray500,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                 }

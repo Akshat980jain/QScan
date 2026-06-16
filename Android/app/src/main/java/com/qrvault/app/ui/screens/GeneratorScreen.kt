@@ -49,6 +49,8 @@ fun GeneratorScreen(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     
+    val isDark = MaterialTheme.colorScheme.primary == md_theme_dark_primary
+    
     var selectedType by remember { mutableStateOf(QRCodeType.TEXT) }
     var content by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
@@ -108,6 +110,7 @@ fun GeneratorScreen(
         }
     }
 
+
     // Preset color palettes
     val colorPresets = listOf(
         Pair(Color.Black, Color.White),
@@ -115,7 +118,8 @@ fun GeneratorScreen(
         Pair(Color(0xFF047857), Color(0xFFECFDF5)), // Green
         Pair(Color(0xFF6D28D9), Color(0xFFF5F3FF)), // Purple
         Pair(Color(0xFFC2410C), Color(0xFFFFF7ED)), // Orange
-        Pair(Color(0xFFB91C1C), Color(0xFFFEF2F2))  // Red
+        Pair(Color(0xFFB91C1C), Color(0xFFFEF2F2)), // Red
+        Pair(Color.White, Color(0xFF1F2937))        // Dark
     )
     
     // WiFi specific fields
@@ -157,6 +161,28 @@ fun GeneratorScreen(
     
     fun generateQRCode() {
         val qrContent = generateContent()
+        
+        // Input validation
+        val isInputValid = when (selectedType) {
+            QRCodeType.TEXT, QRCodeType.URL, QRCodeType.PHONE, QRCodeType.SMS, QRCodeType.LOCATION -> {
+                content.isNotBlank()
+            }
+            QRCodeType.EMAIL -> {
+                emailAddress.isNotBlank()
+            }
+            QRCodeType.WIFI -> {
+                wifiSsid.isNotBlank()
+            }
+            QRCodeType.VCARD -> {
+                vcardName.isNotBlank() || vcardPhone.isNotBlank() || vcardEmail.isNotBlank()
+            }
+        }
+        
+        if (!isInputValid) {
+            Toast.makeText(context, "Please enter the required fields first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
         if (qrContent.isBlank()) return
         
         isGenerating = true
@@ -293,10 +319,20 @@ fun GeneratorScreen(
                     bitmap
                 } catch (e: Exception) {
                     android.util.Log.e("GeneratorScreen", "Local render failed", e)
+                    scope.launch(Dispatchers.Main) {
+                        Toast.makeText(context, "Failed to render QR Code: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                    }
                     null
                 }
             }
             isGenerating = false
+        }
+    }
+
+    // Automatically regenerate QR code on style changes if one is already generated
+    LaunchedEffect(eyeStyle, patternStyle, foregroundColor, backgroundColor, isGradient, gradientStart, gradientEnd) {
+        if (qrBitmap != null) {
+            generateQRCode()
         }
     }
     
@@ -429,14 +465,19 @@ fun GeneratorScreen(
         }
     }
     
+    val gradientColors = if (isDark) {
+        listOf(
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    } else {
+        listOf(Orange50, White, Orange100.copy(alpha = 0.5f))
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(Orange50, White, Orange100.copy(alpha = 0.5f))
-                )
-            )
+            .background(brush = androidx.compose.ui.graphics.Brush.verticalGradient(colors = gradientColors))
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
@@ -445,7 +486,7 @@ fun GeneratorScreen(
             text = "Generate QR Code",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Gray800
+            color = MaterialTheme.colorScheme.onBackground
         )
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -453,7 +494,7 @@ fun GeneratorScreen(
         Text(
             text = "Create customized QR codes for any content type",
             style = MaterialTheme.typography.bodyMedium,
-            color = Gray600
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -462,8 +503,12 @@ fun GeneratorScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.3f else 0.5f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -472,7 +517,7 @@ fun GeneratorScreen(
                     text = "Content Type",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Gray800
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -489,8 +534,10 @@ fun GeneratorScreen(
                                 onClick = { selectedType = type },
                                 label = { Text(type.displayName) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Orange600,
-                                    selectedLabelColor = White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -510,8 +557,12 @@ fun GeneratorScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.3f else 0.5f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -520,7 +571,7 @@ fun GeneratorScreen(
                     text = "Content",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Gray800
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -591,13 +642,19 @@ fun GeneratorScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Encryption:", color = Gray600)
+                            Text("Encryption:", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.width(8.dp))
                             listOf("WPA", "WEP", "None").forEach { enc ->
                                 FilterChip(
                                     selected = wifiEncryption == enc,
                                     onClick = { wifiEncryption = enc },
                                     label = { Text(enc) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
                                     modifier = Modifier.padding(end = 8.dp)
                                 )
                             }
@@ -649,8 +706,12 @@ fun GeneratorScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.3f else 0.5f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)
@@ -659,7 +720,7 @@ fun GeneratorScreen(
                     text = "Visual Styling & Settings",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Gray800
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -669,7 +730,10 @@ fun GeneratorScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Orange50.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .background(
+                                color = if (isDark) MaterialTheme.colorScheme.surfaceVariant else Orange50.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -679,25 +743,35 @@ fun GeneratorScreen(
                                 text = "Dynamic Redirect Link",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Gray800
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Redirects through server to track scans & update URL later",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Gray500
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Switch(
                             checked = isDynamic,
                             onCheckedChange = { isDynamic = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Orange600, checkedTrackColor = Orange100)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
                 // Eye shapes selection
-                Text("Eye Shape", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Gray700)
+                Text(
+                    text = "Eye Shape",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -709,8 +783,10 @@ fun GeneratorScreen(
                             onClick = { eyeStyle = style },
                             label = { Text(name) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Orange600,
-                                selectedLabelColor = White
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             modifier = Modifier.weight(1f)
                         )
@@ -720,7 +796,12 @@ fun GeneratorScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // QR Pattern selection
-                Text("QR Pattern Style", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Gray700)
+                Text(
+                    text = "QR Pattern Style",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -732,8 +813,10 @@ fun GeneratorScreen(
                             onClick = { patternStyle = style },
                             label = { Text(name) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Orange600,
-                                selectedLabelColor = White
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             modifier = Modifier.weight(1f)
                         )
@@ -743,7 +826,12 @@ fun GeneratorScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Color Presets Row
-                Text("Color Themes", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Gray700)
+                Text(
+                    text = "Color Themes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -757,7 +845,7 @@ fun GeneratorScreen(
                                 .background(bg)
                                 .border(
                                     width = if (foregroundColor == fg && backgroundColor == bg && !isGradient) 2.dp else 1.dp,
-                                    color = if (foregroundColor == fg && backgroundColor == bg && !isGradient) Orange600 else Gray300,
+                                    color = if (foregroundColor == fg && backgroundColor == bg && !isGradient) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                     shape = CircleShape
                                 )
                                 .clickable {
@@ -787,9 +875,13 @@ fun GeneratorScreen(
                 ) {
                     Checkbox(
                         checked = isGradient,
-                        onCheckedChange = { isGradient = it }
+                        onCheckedChange = { isGradient = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                            checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
-                    Text("Use Foreground Color Gradient", color = Gray700)
+                    Text("Use Foreground Color Gradient", color = MaterialTheme.colorScheme.onSurface)
                 }
                 
                 if (isGradient) {
@@ -866,14 +958,17 @@ fun GeneratorScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Orange600),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
             shape = RoundedCornerShape(16.dp),
             enabled = !isGenerating
         ) {
             if (isGenerating) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
                 Icon(
@@ -893,8 +988,12 @@ fun GeneratorScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.3f else 0.5f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -906,7 +1005,7 @@ fun GeneratorScreen(
                         text = "Your QR Code",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Gray800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
@@ -917,7 +1016,7 @@ fun GeneratorScreen(
                         modifier = Modifier
                             .size(256.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .border(2.dp, Orange200, RoundedCornerShape(12.dp))
+                            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                             .padding(8.dp)
                     )
                     
@@ -930,7 +1029,9 @@ fun GeneratorScreen(
                         OutlinedButton(
                             onClick = { downloadQRCode() },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Outlined.Download, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -940,14 +1041,17 @@ fun GeneratorScreen(
                         Button(
                             onClick = { saveQRCode() },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Orange600),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
                             shape = RoundedCornerShape(12.dp),
                             enabled = !isSaving
                         ) {
                             if (isSaving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = White
+                                    color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
                                 Icon(Icons.Outlined.Save, contentDescription = null)
@@ -986,12 +1090,12 @@ fun GeneratorScreen(
                     // Workspace selection selector
                     if (isLoggedIn) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text("Choose Target Workspace", style = MaterialTheme.typography.bodySmall, color = Gray600)
+                            Text("Choose Target Workspace", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.height(4.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .border(1.dp, Gray300, RoundedCornerShape(12.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                                     .clickable { expandedWorkspaceDropdown = true }
                                     .padding(14.dp)
                             ) {
@@ -1039,7 +1143,10 @@ fun GeneratorScreen(
                         showSaveDialog = false
                         saveQRCode()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange600)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text("Save")
                 }

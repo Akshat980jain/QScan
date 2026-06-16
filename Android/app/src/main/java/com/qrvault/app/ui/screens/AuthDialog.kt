@@ -2,10 +2,13 @@ package com.qrvault.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -58,17 +61,25 @@ fun AuthDialog(
     val hasNumber = password.any { it.isDigit() }
     val isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber
 
+    val isDark = isSystemInDarkTheme()
+    val scrollState = rememberScrollState()
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
+            )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(scrollState)
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -82,14 +93,14 @@ fun AuthDialog(
                         text = if (isLoginMode) "Welcome Back" else "Create Account",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Gray800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Gray600
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -102,7 +113,7 @@ fun AuthDialog(
                     else 
                         "Create an account to save and sync",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Gray600
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -139,16 +150,16 @@ fun AuthDialog(
                 
                 // Form Fields
                 val textFieldColors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Gray800,
-                    unfocusedTextColor = Gray800,
-                    focusedLabelColor = Gray600,
-                    unfocusedLabelColor = Gray500,
-                    focusedLeadingIconColor = Gray600,
-                    unfocusedLeadingIconColor = Gray500,
-                    focusedTrailingIconColor = Gray600,
-                    unfocusedTrailingIconColor = Gray500,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = Orange600,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLeadingIconColor = Orange600,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTrailingIconColor = Orange600,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     focusedBorderColor = Orange600,
-                    unfocusedBorderColor = Gray300,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                     cursorColor = Orange600
                 )
                 
@@ -167,13 +178,13 @@ fun AuthDialog(
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
-
+ 
                     // Account Type Header
                     Text(
                         text = "Account Type",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Gray700,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
                     
@@ -187,12 +198,12 @@ fun AuthDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (accountType == "individual") Orange600.copy(alpha = 0.08f) else White,
-                                contentColor = if (accountType == "individual") Orange600 else Gray600
+                                containerColor = if (accountType == "individual") Orange600.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+                                contentColor = if (accountType == "individual") Orange600 else MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             border = BorderStroke(
                                 width = 1.5.dp,
-                                color = if (accountType == "individual") Orange600 else Gray300
+                                color = if (accountType == "individual") Orange600 else MaterialTheme.colorScheme.outline
                             )
                         ) {
                             Column(
@@ -200,7 +211,11 @@ fun AuthDialog(
                                 modifier = Modifier.padding(vertical = 4.dp)
                             ) {
                                 Text("Individual", fontWeight = FontWeight.Bold)
-                                Text("Personal use", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                                Text(
+                                    "Personal use", 
+                                    style = MaterialTheme.typography.bodySmall, 
+                                    color = if (accountType == "individual") Orange600.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
                             }
                         }
                         
@@ -209,12 +224,12 @@ fun AuthDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (accountType == "business") Orange600.copy(alpha = 0.08f) else White,
-                                contentColor = if (accountType == "business") Orange600 else Gray600
+                                containerColor = if (accountType == "business") Orange600.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+                                contentColor = if (accountType == "business") Orange600 else MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             border = BorderStroke(
                                 width = 1.5.dp,
-                                color = if (accountType == "business") Orange600 else Gray300
+                                color = if (accountType == "business") Orange600 else MaterialTheme.colorScheme.outline
                             )
                         ) {
                             Column(
@@ -222,11 +237,15 @@ fun AuthDialog(
                                 modifier = Modifier.padding(vertical = 4.dp)
                             ) {
                                 Text("Business", fontWeight = FontWeight.Bold)
-                                Text("Brands & teams", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                                Text(
+                                    "Brands & teams", 
+                                    style = MaterialTheme.typography.bodySmall, 
+                                    color = if (accountType == "business") Orange600.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
                             }
                         }
                     }
-
+ 
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
@@ -274,8 +293,8 @@ fun AuthDialog(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Gray100),
-                        border = BorderStroke(1.dp, Gray200)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp)
@@ -284,7 +303,7 @@ fun AuthDialog(
                                 text = "Password Requirements:",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Gray600
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
@@ -298,13 +317,13 @@ fun AuthDialog(
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
-                                            .background(if (hasMinLength) Success else Gray400, shape = CircleShape)
+                                            .background(if (hasMinLength) Success else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), shape = CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Min 6 chars",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasMinLength) Success else Gray500
+                                        color = if (hasMinLength) Success else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Row(
@@ -314,13 +333,13 @@ fun AuthDialog(
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
-                                            .background(if (hasUppercase) Success else Gray400, shape = CircleShape)
+                                            .background(if (hasUppercase) Success else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), shape = CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "1 uppercase",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasUppercase) Success else Gray500
+                                        color = if (hasUppercase) Success else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -336,13 +355,13 @@ fun AuthDialog(
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
-                                            .background(if (hasLowercase) Success else Gray400, shape = CircleShape)
+                                            .background(if (hasLowercase) Success else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), shape = CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "1 lowercase",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasLowercase) Success else Gray500
+                                        color = if (hasLowercase) Success else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Row(
@@ -352,13 +371,13 @@ fun AuthDialog(
                                     Box(
                                         modifier = Modifier
                                             .size(6.dp)
-                                            .background(if (hasNumber) Success else Gray400, shape = CircleShape)
+                                            .background(if (hasNumber) Success else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), shape = CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "1 number",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (hasNumber) Success else Gray500
+                                        color = if (hasNumber) Success else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -399,9 +418,9 @@ fun AuthDialog(
                         },
                         colors = textFieldColors
                     )
-
+ 
                     Spacer(modifier = Modifier.height(16.dp))
-
+ 
                     // Agreement Checkboxes
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -416,7 +435,7 @@ fun AuthDialog(
                         Text(
                             text = "I agree to the Terms & Privacy Policy",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Gray600
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
@@ -435,7 +454,7 @@ fun AuthDialog(
                         Text(
                             text = "Keep me updated with news & offers",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Gray600
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -528,7 +547,7 @@ fun AuthDialog(
                     Text(
                         text = if (isLoginMode) "Don't have an account?" else "Already have an account?",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Gray600
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     
                     TextButton(

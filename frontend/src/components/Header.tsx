@@ -104,9 +104,7 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
           {/* Logo Section */}
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                <QrCode className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.png" alt="QRVault Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg border border-orange-200" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
             <div>

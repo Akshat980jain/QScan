@@ -8,6 +8,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Help
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,7 +62,7 @@ fun SettingsScreen(
             },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -205,7 +208,7 @@ fun SettingsScreen(
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     
                     SettingsNavigationItem(
-                        icon = Icons.Outlined.Help,
+                        icon = Icons.AutoMirrored.Outlined.Help,
                         title = "Help & Support",
                         onClick = { }
                     )
@@ -227,7 +230,7 @@ fun SettingsScreen(
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.Outlined.Logout, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Sign Out",

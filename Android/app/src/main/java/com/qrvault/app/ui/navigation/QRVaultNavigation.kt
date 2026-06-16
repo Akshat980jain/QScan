@@ -155,17 +155,14 @@ fun QRVaultNavigation() {
             composable(Screen.Library.route) {
                 LibraryScreen(
                     isLoggedIn = isLoggedIn != null,
-                    onSignInClick = { showAuthDialog = true },
-                    onQRCodeClick = { qrId ->
-                        navController.navigate(Screen.QRDetail.createRoute(qrId))
-                    }
+                    onSignInClick = { showAuthDialog = true }
                 )
             }
             
             composable(Screen.Scanner.route) {
                 ScannerScreen(
                     isLoggedIn = isLoggedIn != null,
-                    onScanResult = { result ->
+                    onScanResult = { _ ->
                         // Handle scanned result
                     },
                     onClose = {

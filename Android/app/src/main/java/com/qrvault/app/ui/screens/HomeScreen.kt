@@ -2,14 +2,17 @@ package com.qrvault.app.ui.screens
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -18,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.qrvault.app.data.repository.QRCodeRepository
 import com.qrvault.app.ui.theme.*
+import androidx.compose.ui.res.painterResource
+import com.qrvault.app.R
 import kotlinx.coroutines.launch
 
 @Composable
@@ -39,7 +45,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val qrRepository = remember { QRCodeRepository(context) }
-    val scope = rememberCoroutineScope()
     
     var qrCodesCount by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(false) }
@@ -75,63 +80,68 @@ fun HomeScreen(
         onDispose { }
     }
     
+    val isDark = isSystemInDarkTheme()
+    val gradientColors = if (isDark) {
+        listOf(
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.background,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        )
+    } else {
+        listOf(
+            Orange50,
+            White,
+            Orange100.copy(alpha = 0.3f)
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Orange50,
-                        White,
-                        Orange100.copy(alpha = 0.5f)
-                    )
+                    colors = gradientColors
                 )
             )
             .verticalScroll(scrollState)
     ) {
-        // Hero Section
-        if (!isLoggedIn) {
-            HeroSection(
-                onSignInClick = onSignInClick,
-                onTryDemoClick = onNavigateToGenerator
-            )
-        } else {
-            // App Header Banner with name and profile
-            Card(
+        // App Header Banner (shows logo, name, and profile or sign-in)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDark) MaterialTheme.colorScheme.surface else Gray800
+            ),
+            border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)) else null
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Gray800
-                )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // App Name on the left
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // App Name on the left
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.QrCode,
-                            contentDescription = null,
-                            tint = Orange500,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "QR Vault",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = White
-                        )
-                    }
-                    
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_launcher),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "QR Vault",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = White
+                    )
+                }
+                
+                if (isLoggedIn) {
                     // Profile button on the right
                     IconButton(
                         onClick = onNavigateToProfile,
@@ -146,11 +156,36 @@ fun HomeScreen(
                             tint = White
                         )
                     }
+                } else {
+                    // Sign In button on the right
+                    Button(
+                        onClick = onSignInClick,
+                        modifier = Modifier.height(40.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Orange600
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Sign In",
+                            color = White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        if (!isLoggedIn) {
+            HeroSection(
+                onSignInClick = onSignInClick,
+                onTryDemoClick = onNavigateToGenerator
+            )
+        } else {
             WelcomeBackSection(
                 qrCodesCount = qrCodesCount,
                 isLoading = isLoading
@@ -198,19 +233,20 @@ private fun HeroSection(
     onSignInClick: () -> Unit,
     onTryDemoClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else Orange600
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
-        
         Text(
             text = "Create, Manage & Share",
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
-            color = Gray800,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         
@@ -218,7 +254,7 @@ private fun HeroSection(
             text = "QR Codes Instantly",
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
-            color = Orange600,
+            color = primaryColor,
             textAlign = TextAlign.Center
         )
         
@@ -227,12 +263,12 @@ private fun HeroSection(
         Text(
             text = "The most powerful QR code generator with advanced features, secure storage, and seamless collaboration for teams and individuals.",
             style = MaterialTheme.typography.bodyLarge,
-            color = Gray600,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -245,13 +281,14 @@ private fun HeroSection(
                     .weight(1f)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Orange600
+                    containerColor = primaryColor
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Get Started Free",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Get Started",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
                 )
             }
             
@@ -261,21 +298,20 @@ private fun HeroSection(
                     .weight(1f)
                     .height(56.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Orange600
+                    contentColor = primaryColor
                 ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = Brush.linearGradient(listOf(Orange600, Orange600))
-                ),
+                border = BorderStroke(1.dp, primaryColor),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
                     text = "Try Demo",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -290,17 +326,24 @@ private fun WelcomeBackSection(
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Orange600
+            containerColor = Color.Transparent
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Orange600, Orange500)
+                    )
+                )
                 .padding(24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = "Welcome back! 👋",
                     style = MaterialTheme.typography.headlineSmall,
@@ -314,6 +357,9 @@ private fun WelcomeBackSection(
                     color = Orange100
                 )
             }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -334,7 +380,8 @@ private fun WelcomeBackSection(
                 Text(
                     text = "QR Codes Created",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Orange100
+                    color = Orange100,
+                    textAlign = TextAlign.End
                 )
             }
         }
@@ -355,7 +402,7 @@ private fun QuickActionsSection(
             text = "Quick Actions",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = Gray800,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
@@ -390,14 +437,22 @@ private fun QuickActionCard(
     subtitle: String,
     onClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val iconBgColor = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Orange100
+    val iconTint = if (isDark) MaterialTheme.colorScheme.primary else Orange600
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = White
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = if (isDark) 0.dp else 4.dp
         ),
         onClick = onClick
     ) {
@@ -411,13 +466,13 @@ private fun QuickActionCard(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Orange100),
+                    .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = Orange600,
+                    tint = iconTint,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -428,13 +483,13 @@ private fun QuickActionCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Gray800
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Gray500
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -460,7 +515,7 @@ private fun FeaturesSection() {
             text = "Powerful Features",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = Gray800,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
@@ -495,14 +550,19 @@ private fun FeatureCard(
     modifier: Modifier = Modifier,
     feature: FeatureItem
 ) {
+    val isDark = isSystemInDarkTheme()
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = White.copy(alpha = 0.8f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.5f else 0.8f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.1f else 0.3f)
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = if (isDark) 0.dp else 2.dp
         )
     ) {
         Column(
@@ -513,7 +573,7 @@ private fun FeatureCard(
             Icon(
                 imageVector = feature.icon,
                 contentDescription = feature.title,
-                tint = Orange600,
+                tint = if (isDark) MaterialTheme.colorScheme.primary else Orange600,
                 modifier = Modifier.size(40.dp)
             )
             
@@ -523,7 +583,7 @@ private fun FeatureCard(
                 text = feature.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Gray800
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             Spacer(modifier = Modifier.height(4.dp))
@@ -531,7 +591,7 @@ private fun FeatureCard(
             Text(
                 text = feature.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Gray600
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -540,10 +600,11 @@ private fun FeatureCard(
 @Composable
 private fun StatsSection() {
     val stats = listOf(
-        StatItem(Icons.Outlined.TrendingUp, "10,000+", "QR Codes Generated"),
+        StatItem(Icons.AutoMirrored.Outlined.TrendingUp, "10,000+", "QR Codes Generated"),
         StatItem(Icons.Outlined.People, "5,000+", "Active Users"),
         StatItem(Icons.Outlined.Public, "50+", "Countries")
     )
+    val isDark = isSystemInDarkTheme()
     
     Card(
         modifier = Modifier
@@ -551,10 +612,14 @@ private fun StatsSection() {
             .padding(16.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = White.copy(alpha = 0.9f)
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.5f else 0.9f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = if (isDark) 0.dp else 4.dp
         )
     ) {
         Column(
@@ -566,7 +631,7 @@ private fun StatsSection() {
                 text = "Trusted by Thousands",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Gray800,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             
@@ -592,13 +657,14 @@ private data class StatItem(
 
 @Composable
 private fun StatColumn(stat: StatItem) {
+    val isDark = isSystemInDarkTheme()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = stat.icon,
             contentDescription = stat.label,
-            tint = Orange600,
+            tint = if (isDark) MaterialTheme.colorScheme.primary else Orange600,
             modifier = Modifier.size(28.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -606,12 +672,12 @@ private fun StatColumn(stat: StatItem) {
             text = stat.value,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = Gray800
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = stat.label,
             style = MaterialTheme.typography.bodySmall,
-            color = Gray600
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -621,6 +687,7 @@ private fun RecentQRCodesSection(
     recentQRCodes: List<com.qrvault.app.data.model.QRCode>,
     onQRCodeClick: (String) -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -635,12 +702,12 @@ private fun RecentQRCodesSection(
                 text = "Recent QR Codes",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Gray800
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "View All →",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Orange600
+                color = if (isDark) MaterialTheme.colorScheme.primary else Orange600
             )
         }
         
@@ -668,12 +735,21 @@ private fun RecentQRCodeItem(
     qrCode: com.qrvault.app.data.model.QRCode,
     onClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     Card(
         onClick = onClick,
         modifier = Modifier.size(100.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.15f else 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isDark) 0.dp else 2.dp
+        )
     ) {
         Column(
             modifier = Modifier
@@ -687,7 +763,7 @@ private fun RecentQRCodeItem(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Orange50),
+                    .background(if (isDark) MaterialTheme.colorScheme.surfaceVariant else Orange50),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = remember(qrCode.image) {
@@ -719,7 +795,7 @@ private fun RecentQRCodeItem(
                     Icon(
                         imageVector = Icons.Outlined.QrCode,
                         contentDescription = null,
-                        tint = Orange600,
+                        tint = if (isDark) MaterialTheme.colorScheme.primary else Orange600,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -730,7 +806,7 @@ private fun RecentQRCodeItem(
             Text(
                 text = qrCode.title.ifEmpty { "Untitled" },
                 style = MaterialTheme.typography.labelSmall,
-                color = Gray700,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
