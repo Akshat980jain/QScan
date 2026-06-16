@@ -10,11 +10,14 @@ import {
   Bell, 
   Sparkles,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useQR } from '../context/QRContext';
 import { useDialog } from '../context/DialogContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   activeTab: 'generate' | 'library';
@@ -28,6 +31,7 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
   const { user, logout } = useAuth();
   const { workspaces, currentWorkspace, setCurrentWorkspace, createWorkspace, addWorkspaceMember } = useQR();
   const { alert } = useDialog();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -235,6 +239,16 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
                   )}
                 </div>
 
+                {/* Theme Toggle */}
+                <button
+                  id="theme-toggle-btn"
+                  onClick={toggleTheme}
+                  title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  className="p-2 rounded-xl text-gray-600 hover:text-orange-600 dark:text-zinc-400 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all duration-300"
+                >
+                  {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+
                 {/* Notifications */}
                 <div className="relative" ref={notificationsRef}>
                   <button 
@@ -367,6 +381,15 @@ export function Header({ activeTab, setActiveTab, onSignInClick, onSettingsClick
               </div>
             ) : (
               <div className="flex items-center space-x-3">
+                {/* Theme Toggle (guest) */}
+                <button
+                  id="theme-toggle-guest-btn"
+                  onClick={toggleTheme}
+                  title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  className="p-2 rounded-xl text-gray-600 hover:text-orange-600 dark:text-zinc-400 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all duration-300"
+                >
+                  {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
                 <button
                   onClick={onScanClick}
                   className="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-all duration-300"

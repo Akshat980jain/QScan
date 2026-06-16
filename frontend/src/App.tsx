@@ -8,6 +8,7 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { QRProvider } from './context/QRContext';
 import { DialogProvider } from './context/DialogContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Sparkles, TrendingUp, Zap, Shield, Users, Clock } from 'lucide-react';
 
 function AppContent() {
@@ -18,23 +19,7 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    const currentTheme = user?.theme || 'light';
-    
-    if (currentTheme === 'dark') {
-      root.classList.add('dark');
-    } else if (currentTheme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      if (systemTheme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
-  }, [user?.theme]);
+  // Theme is now managed by ThemeProvider — no inline effect needed here
 
   useEffect(() => {
     const handleSwitchToLibrary = () => setActiveTab('library');
@@ -267,11 +252,13 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <QRProvider>
-        <DialogProvider>
-          <AppContent />
-        </DialogProvider>
-      </QRProvider>
+      <ThemeProvider>
+        <QRProvider>
+          <DialogProvider>
+            <AppContent />
+          </DialogProvider>
+        </QRProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

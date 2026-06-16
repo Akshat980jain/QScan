@@ -283,7 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchApiKeys = async () => {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_URL}/api/auth/apikeys`, {
+    const response = await fetch(`${API_URL}/api/api-keys`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -305,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const createApiKey = async (name: string) => {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_URL}/api/auth/apikeys`, {
+    const response = await fetch(`${API_URL}/api/api-keys`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -321,7 +321,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const result = await response.json();
     if (result.success) {
-      return result.apiKey;
+      // Return both the metadata and the raw key (shown only once)
+      return { ...result.apiKey, rawKey: result.rawKey };
     } else {
       throw new Error(result.message || 'Failed to create API key');
     }
@@ -329,7 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const revokeApiKey = async (id: string) => {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_URL}/api/auth/apikeys/${id}`, {
+    const response = await fetch(`${API_URL}/api/api-keys/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

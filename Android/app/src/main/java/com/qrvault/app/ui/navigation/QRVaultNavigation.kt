@@ -58,6 +58,12 @@ fun QRVaultNavigation() {
             title = "Library",
             selectedIcon = { Icon(Icons.Filled.Folder, contentDescription = "Library") },
             unselectedIcon = { Icon(Icons.Outlined.Folder, contentDescription = "Library") }
+        ),
+        BottomNavItem(
+            route = Screen.ScanHistory.route,
+            title = "History",
+            selectedIcon = { Icon(Icons.Filled.History, contentDescription = "History") },
+            unselectedIcon = { Icon(Icons.Outlined.History, contentDescription = "History") }
         )
     )
     
@@ -188,6 +194,12 @@ fun QRVaultNavigation() {
                             popUpTo(0) { inclusive = true }
                         }
                     },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.ScanHistory.route) {
+                ScanHistoryScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

@@ -15,6 +15,7 @@ const qrCodeRoutes = require('./routes/qrcodes');
 const scanHistoryRoutes = require('./routes/scanHistory');
 const redirectRoutes = require('./routes/redirect');
 const workspaceRoutes = require('./routes/workspaces');
+const apiKeyRoutes = require('./routes/apikeys');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/qr-codes', qrCodeRoutes);
 app.use('/api/scan-history', scanHistoryRoutes);
 app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/api-keys', apiKeyRoutes);
 app.use('/r', redirectRoutes);
 
 // 404 handler
