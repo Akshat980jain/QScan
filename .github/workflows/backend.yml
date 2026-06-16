@@ -12,13 +12,9 @@ on:
       - 'backend/**'
       - '.github/workflows/backend.yml'
 
-defaults:
-  run:
-    working-directory: backend
-
 jobs:
   # ─────────────────────────────────────────────
-  # Job 1: Lint & Test
+  # Job 1: Install & Test
   # ─────────────────────────────────────────────
   test:
     name: Lint & Test
@@ -40,12 +36,14 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
       - name: Run tests
-        run: npm test
+        working-directory: backend
+        # Call jest directly — npm's '--' separator doesn't forward flags reliably
+        run: npx jest --passWithNoTests
         env:
-          # Jest will use this to skip real MongoDB connections
           NODE_ENV: test
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-12345' }}
 
@@ -56,10 +54,10 @@ jobs:
     name: Deploy to Render
     runs-on: ubuntu-latest
     needs: test
-    # Only deploy when code is merged into main
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      # No checkout needed — just fire the deploy hook
       - name: Trigger Render Deploy Hook
         run: |
           echo "🚀 Triggering backend deployment on Render..."

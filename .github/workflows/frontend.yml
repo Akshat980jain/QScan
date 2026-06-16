@@ -12,10 +12,6 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
 
-defaults:
-  run:
-    working-directory: frontend
-
 jobs:
   # ─────────────────────────────────────────────
   # Job 1: Lint & Build
@@ -36,17 +32,18 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Lint
+        working-directory: frontend
         run: npm run lint
-        # Don't fail pipeline on lint warnings — treat as informational
         continue-on-error: true
 
       - name: Build (Vite)
+        working-directory: frontend
         run: npm run build
         env:
-          # Provide a placeholder so Vite doesn't complain about missing env vars
           VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://qrvault-api.onrender.com' }}
 
       - name: Upload build artifact
@@ -66,6 +63,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      # No checkout needed — just fire the deploy hook
       - name: Trigger Render Deploy Hook
         run: |
           echo "🚀 Triggering frontend deployment on Render..."
