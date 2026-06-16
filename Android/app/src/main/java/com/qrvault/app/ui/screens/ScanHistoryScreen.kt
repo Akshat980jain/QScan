@@ -44,14 +44,21 @@ fun ScanHistoryScreen(
     var scans by remember { mutableStateOf<List<ScanHistory>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var isRetrying by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
 
     // Load history on launch
     LaunchedEffect(Unit) {
         isLoading = true
         repository.getScanHistory().fold(
-            onSuccess = { scans = it },
-            onFailure = { error = it.message ?: "Failed to load history" }
+            onSuccess = { scans = it; error = null },
+            onFailure = {
+                error = if (it.message?.contains("timeout", ignoreCase = true) == true ||
+                           it.message?.contains("connect", ignoreCase = true) == true)
+                    "timeout"
+                else
+                    it.message ?: "Failed to load history"
+            }
         )
         isLoading = false
     }
@@ -162,37 +169,63 @@ fun ScanHistoryScreen(
                             )
                         ) {
                             Column(
-                                modifier = Modifier.padding(24.dp),
+                                modifier = Modifier.padding(28.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    Icons.Outlined.ErrorOutline,
+                                    if (error == "timeout") Icons.Outlined.CloudOff else Icons.Outlined.ErrorOutline,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(48.dp)
+                                    tint = if (error == "timeout") Orange600 else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(52.dp)
                                 )
-                                Spacer(Modifier.height(12.dp))
+                                Spacer(Modifier.height(14.dp))
                                 Text(
-                                    text = error ?: "Unknown error",
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    text = if (error == "timeout") "Server is waking up" else "Something went wrong",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Spacer(Modifier.height(16.dp))
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = if (error == "timeout")
+                                        "The server takes ~30s to wake up after inactivity. Tap Retry."
+                                    else
+                                        (error ?: "Unknown error"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(Modifier.height(20.dp))
                                 Button(
                                     onClick = {
                                         scope.launch {
-                                            isLoading = true
+                                            isRetrying = true
                                             error = null
                                             repository.getScanHistory().fold(
                                                 onSuccess = { scans = it },
-                                                onFailure = { error = it.message }
+                                                onFailure = {
+                                                    error = if (it.message?.contains("timeout", ignoreCase = true) == true ||
+                                                               it.message?.contains("connect", ignoreCase = true) == true)
+                                                        "timeout"
+                                                    else
+                                                        it.message ?: "Failed to load history"
+                                                }
                                             )
-                                            isLoading = false
+                                            isRetrying = false
                                         }
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Orange600)
+                                    colors = ButtonDefaults.buttonColors(containerColor = Orange600),
+                                    enabled = !isRetrying
                                 ) {
-                                    Text("Retry")
+                                    if (isRetrying) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = androidx.compose.ui.graphics.Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text(if (isRetrying) "Retrying…" else "Retry")
                                 }
                             }
                         }
@@ -458,7 +491,8 @@ private fun ScanHistoryItem(
                                 colors = ButtonDefaults.buttonColors(containerColor = Orange600),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(15.dp))
+                                @Suppress("DEPRECATION")
+                            Icon(Icons.Outlined.OpenInNew, null, modifier = Modifier.size(15.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Open", style = MaterialTheme.typography.labelMedium)
                             }
