@@ -6,9 +6,7 @@ import {
   Grid, 
   List, 
   FolderOpen, 
-  Plus, 
   Filter,
-  Calendar,
   Globe,
   Smartphone,
   Laptop,
@@ -20,11 +18,8 @@ import {
   Activity,
   Info,
   Link,
-  Users,
   Copy,
-  RefreshCw,
-  Clock,
-  ExternalLink
+  RefreshCw
 } from 'lucide-react';
 import { useQR } from '../context/QRContext';
 import { useAuth } from '../context/AuthContext';
@@ -122,7 +117,7 @@ export function QRLibrary() {
     try {
       // Basic validation
       new URL(editedUrl);
-    } catch (e) {
+    } catch {
       setEditError('Please enter a valid URL (including http:// or https://)');
       setIsUpdatingUrl(false);
       return;
@@ -814,7 +809,7 @@ export function QRLibrary() {
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                           <span className="text-xs text-gray-400 block mb-0.5">Scan Count</span>
-                          <span className="font-semibold text-gray-700">{(selectedQR as any).scanCount || 0} scans</span>
+                          <span className="font-semibold text-gray-700">{selectedQR.scanCount || 0} scans</span>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                           <span className="text-xs text-gray-400 block mb-0.5">QR Type</span>

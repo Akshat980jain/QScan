@@ -12,6 +12,7 @@ export interface QRCode {
   isDynamic?: boolean;
   targetUrl?: string;
   shortId?: string;
+  scanCount?: number;
   customization?: {
     foregroundColor?: string;
     backgroundColor?: string;

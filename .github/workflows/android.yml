@@ -106,10 +106,12 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode Keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
         working-directory: Android
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > app/qrvault-release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/qrvault-release.keystore
         continue-on-error: true
 
       - name: Build Release APK
