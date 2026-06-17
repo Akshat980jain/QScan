@@ -51,6 +51,8 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.qrvault.app.data.model.QRCodeRequest
 import com.qrvault.app.data.repository.QRCodeRepository
+import com.qrvault.app.util.QRCodeGenerator
+import com.qrvault.app.data.network.RetrofitClient
 import com.qrvault.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -621,8 +623,21 @@ fun ScannerScreen(
                                 .background(White),
                             contentAlignment = Alignment.Center
                         ) {
-                            val bitmap = remember(qr.image) {
-                                if (qr.image.isNotEmpty()) {
+                            val bitmap = remember(qr.image, qr.content) {
+                                if (qr.isDynamic && qr.type == "url") {
+                                    val fg = qr.customization?.foregroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.BLACK
+                                    val bg = qr.customization?.backgroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.WHITE
+                                    val eye = qr.customization?.eyeStyle ?: "square"
+                                    val pattern = qr.customization?.patternStyle ?: "square"
+                                    QRCodeGenerator.generate(
+                                        qrContent = qr.content,
+                                        qrSize = qr.size,
+                                        foregroundColor = fg,
+                                        backgroundColor = bg,
+                                        eyeStyle = eye,
+                                        patternStyle = pattern
+                                    )
+                                } else if (qr.image.isNotEmpty()) {
                                     try {
                                         val base64String = if (qr.image.contains(",")) {
                                             qr.image.substringAfter(",")
@@ -672,7 +687,7 @@ fun ScannerScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = qr.content,
+                                    text = qr.targetUrl ?: qr.content,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Gray800,
                                     maxLines = 3,
@@ -695,7 +710,7 @@ fun ScannerScreen(
                             OutlinedButton(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("QR Content", qr.content)
+                                    val clip = ClipData.newPlainText("QR Content", qr.targetUrl ?: qr.content)
                                     clipboard.setPrimaryClip(clip)
                                     Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
                                 },
@@ -711,7 +726,7 @@ fun ScannerScreen(
                                 onClick = {
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, qr.content)
+                                        putExtra(Intent.EXTRA_TEXT, qr.targetUrl ?: qr.content)
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, "Share via"))
                                 },
@@ -725,11 +740,12 @@ fun ScannerScreen(
                         }
                         
                         // Open Link Button (for URLs)
-                        if (qr.content.startsWith("http://") || qr.content.startsWith("https://")) {
+                        val urlToOpen = qr.targetUrl ?: qr.content
+                        if (urlToOpen.startsWith("http://") || urlToOpen.startsWith("https://")) {
                             Button(
                                 onClick = {
                                     try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(qr.content))
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlToOpen))
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "Cannot open this link", Toast.LENGTH_SHORT).show()

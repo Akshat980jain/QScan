@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.qrvault.app.data.repository.QRCodeRepository
 import com.qrvault.app.ui.theme.*
+import com.qrvault.app.util.QRCodeGenerator
 import androidx.compose.ui.res.painterResource
 import com.qrvault.app.R
 import kotlinx.coroutines.launch
@@ -766,8 +767,21 @@ private fun RecentQRCodeItem(
                     .background(if (isDark) MaterialTheme.colorScheme.surfaceVariant else Orange50),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = remember(qrCode.image) {
-                    if (qrCode.image.isNotEmpty()) {
+                val bitmap = remember(qrCode.image, qrCode.content) {
+                    if (qrCode.isDynamic && qrCode.type == "url") {
+                        val fg = qrCode.customization?.foregroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.BLACK
+                        val bg = qrCode.customization?.backgroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.WHITE
+                        val eye = qrCode.customization?.eyeStyle ?: "square"
+                        val pattern = qrCode.customization?.patternStyle ?: "square"
+                        QRCodeGenerator.generate(
+                            qrContent = qrCode.content,
+                            qrSize = qrCode.size,
+                            foregroundColor = fg,
+                            backgroundColor = bg,
+                            eyeStyle = eye,
+                            patternStyle = pattern
+                        )
+                    } else if (qrCode.image.isNotEmpty()) {
                         try {
                             val base64String = if (qrCode.image.contains(",")) {
                                 qrCode.image.substringAfter(",")

@@ -47,19 +47,43 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
     }
 
     let finalContent = content;
-    let targetUrl = null;
-    let shortId = null;
+    let targetUrl = req.body.targetUrl || null;
+    let shortId = req.body.shortId || null;
 
     if (isDynamic && type === 'url') {
       const crypto = require('crypto');
-      let isUnique = false;
-      while (!isUnique) {
-        shortId = crypto.randomBytes(4).toString('hex');
+      
+      // If client provided a shortId, verify it is unique. If not, we will regenerate one.
+      if (shortId) {
         const existing = await QRCode.findOne({ shortId });
-        if (!existing) isUnique = true;
+        if (existing) {
+          shortId = null; // Collision or invalid, force regeneration
+        }
       }
-      targetUrl = content;
-      const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+      
+      if (!shortId) {
+        let isUnique = false;
+        while (!isUnique) {
+          shortId = crypto.randomBytes(4).toString('hex');
+          const existing = await QRCode.findOne({ shortId });
+          if (!existing) isUnique = true;
+        }
+      }
+      
+      // targetUrl = the actual destination website the user wants to redirect to.
+      // If the client sent a targetUrl that looks like a redirect link (e.g. localhost or our own /r/ path),
+      // it means the client sent the redirect URL instead of the real destination — fall back to content.
+      const looksLikeRedirect = (url) =>
+        url && (url.includes('/r/') || url.includes('localhost'));
+      
+      if (!targetUrl || looksLikeRedirect(targetUrl)) {
+        // If content also looks like a redirect, leave targetUrl as null
+        targetUrl = (!content || looksLikeRedirect(content)) ? null : content;
+      }
+
+      // Always rewrite content to the active backend URL for dynamic QR codes.
+      // Never trust localhost URLs sent from web clients in development.
+      const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
       finalContent = `${backendUrl}/r/${shortId}`;
     }
 
@@ -80,10 +104,16 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
     await qrCode.save();
     console.log('QR Code saved successfully with id:', qrCode._id);
 
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const doc = qrCode.toObject();
+    if (doc.isDynamic && doc.shortId) {
+      doc.content = `${backendUrl}/r/${doc.shortId}`;
+    }
+
     res.status(201).json({
       success: true,
       message: 'QR code created successfully',
-      qrCode
+      qrCode: doc
     });
   } catch (error) {
     console.error('QR code creation error:', error);
@@ -146,9 +176,18 @@ router.get('/', authenticateToken, async (req, res) => {
     // Get total count for pagination
     const total = await QRCode.countDocuments(query);
 
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const mappedQrCodes = qrCodes.map(qr => {
+      const doc = qr.toObject();
+      if (doc.isDynamic && doc.shortId) {
+        doc.content = `${backendUrl}/r/${doc.shortId}`;
+      }
+      return doc;
+    });
+
     res.json({
       success: true,
-      qrCodes,
+      qrCodes: mappedQrCodes,
       pagination: {
         current: page,
         pages: Math.ceil(total / limit),
@@ -183,9 +222,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const doc = qrCode.toObject();
+    if (doc.isDynamic && doc.shortId) {
+      doc.content = `${backendUrl}/r/${doc.shortId}`;
+    }
+
     res.json({
       success: true,
-      qrCode
+      qrCode: doc
     });
   } catch (error) {
     console.error('Get QR code error:', error);
@@ -243,10 +288,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     await qrCode.save();
 
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const doc = qrCode.toObject();
+    if (doc.isDynamic && doc.shortId) {
+      doc.content = `${backendUrl}/r/${doc.shortId}`;
+    }
+
     res.json({
       success: true,
       message: 'QR code updated successfully',
-      qrCode
+      qrCode: doc
     });
   } catch (error) {
     console.error('QR code update error:', error);

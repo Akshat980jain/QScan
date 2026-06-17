@@ -32,6 +32,8 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.qrvault.app.data.model.*
 import com.qrvault.app.data.repository.QRCodeRepository
 import com.qrvault.app.data.repository.AuthRepository
+import com.qrvault.app.data.network.RetrofitClient
+import com.qrvault.app.util.QRCodeGenerator
 import com.qrvault.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -159,6 +161,24 @@ fun GeneratorScreen(
         }
     }
     
+    fun generateQRCodeBitmap(qrContent: String): Bitmap? {
+        val fg = foregroundColor.toArgb()
+        val bg = backgroundColor.toArgb()
+        val gs = gradientStart.toArgb()
+        val ge = gradientEnd.toArgb()
+        return QRCodeGenerator.generate(
+            qrContent = qrContent,
+            qrSize = qrSize,
+            foregroundColor = fg,
+            backgroundColor = bg,
+            eyeStyle = eyeStyle,
+            patternStyle = patternStyle,
+            isGradient = isGradient,
+            gradientStart = gs,
+            gradientEnd = ge
+        )
+    }
+
     fun generateQRCode() {
         val qrContent = generateContent()
         
@@ -188,142 +208,10 @@ fun GeneratorScreen(
         isGenerating = true
         scope.launch {
             qrBitmap = withContext(Dispatchers.Default) {
-                try {
-                    val hints = hashMapOf<EncodeHintType, Any>()
-                    hints[EncodeHintType.MARGIN] = 0 // Draw custom margin ourselves
-                    hints[EncodeHintType.CHARACTER_SET] = "UTF-8"
-                    
-                    val writer = QRCodeWriter()
-                    // Encode to the smallest natural matrix dimension first (natural modules)
-                    val bitMatrix = writer.encode(qrContent, BarcodeFormat.QR_CODE, 0, 0, hints)
-                    
-                    val count = bitMatrix.width
-                    val size = qrSize
-                    val cellSize = size.toFloat() / count
-                    
-                    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bitmap)
-                    val paint = android.graphics.Paint().apply {
-                        isAntiAlias = true
-                        style = android.graphics.Paint.Style.FILL
-                    }
-                    
-                    // Draw background
-                    paint.color = backgroundColor.toArgb()
-                    canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), paint)
-                    
-                    // Setup foreground paint
-                    val fgPaint = android.graphics.Paint().apply {
-                        isAntiAlias = true
-                        style = android.graphics.Paint.Style.FILL
-                        color = foregroundColor.toArgb()
-                    }
-                    
-                    if (isGradient) {
-                        val shader = android.graphics.LinearGradient(
-                            0f, 0f, size.toFloat(), size.toFloat(),
-                            gradientStart.toArgb(), gradientEnd.toArgb(),
-                            android.graphics.Shader.TileMode.CLAMP
-                        )
-                        fgPaint.shader = shader
-                    }
-                    
-                    // Eye Zones helper
-                    fun isEyeZone(r: Int, c: Int): Boolean {
-                        if (r < 7 && c < 7) return true
-                        if (r < 7 && c >= count - 7) return true
-                        if (r >= count - 7 && c < 7) return true
-                        return false
-                    }
-                    
-                    // Draw modules
-                    for (r in 0 until count) {
-                        for (c in 0 until count) {
-                            if (bitMatrix[c, r]) { // ZXing matrix uses [x,y] coordinates
-                                if (eyeStyle != "square" && isEyeZone(r, c)) {
-                                    continue
-                                }
-                                
-                                val x = c * cellSize
-                                val y = r * cellSize
-                                
-                                when (patternStyle) {
-                                    "dot" -> {
-                                        canvas.drawCircle(x + cellSize / 2f, y + cellSize / 2f, cellSize * 0.4f, fgPaint)
-                                    }
-                                    "line" -> {
-                                        val rect = android.graphics.RectF(x + 0.5f, y + 0.5f, x + cellSize - 0.5f, y + cellSize - 0.5f)
-                                        canvas.drawRoundRect(rect, cellSize * 0.25f, cellSize * 0.25f, fgPaint)
-                                    }
-                                    else -> {
-                                        // Square blocks
-                                        canvas.drawRect(x, y, x + cellSize, y + cellSize, fgPaint)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Draw custom eyes
-                    if (eyeStyle != "square") {
-                        val eyes = listOf(
-                            Pair(0, 0),
-                            Pair(0, count - 7),
-                            Pair(count - 7, 0)
-                        )
-                        
-                        val strokePaint = android.graphics.Paint().apply {
-                            isAntiAlias = true
-                            style = android.graphics.Paint.Style.STROKE
-                            strokeWidth = cellSize
-                            color = foregroundColor.toArgb()
-                        }
-                        
-                        val eyeFillPaint = android.graphics.Paint().apply {
-                            isAntiAlias = true
-                            style = android.graphics.Paint.Style.FILL
-                            color = foregroundColor.toArgb()
-                        }
-                        
-                        if (isGradient) {
-                            val shader = android.graphics.LinearGradient(
-                                0f, 0f, size.toFloat(), size.toFloat(),
-                                gradientStart.toArgb(), gradientEnd.toArgb(),
-                                android.graphics.Shader.TileMode.CLAMP
-                            )
-                            strokePaint.shader = shader
-                            eyeFillPaint.shader = shader
-                        }
-                        
-                        for (eye in eyes) {
-                            val ex = eye.second * cellSize
-                            val ey = eye.first * cellSize
-                            val w = 7 * cellSize
-                            
-                            if (eyeStyle == "circle") {
-                                // Outer circle
-                                canvas.drawCircle(ex + w / 2f, ey + w / 2f, w / 2f - cellSize / 2f, strokePaint)
-                                // Inner circle
-                                canvas.drawCircle(ex + w / 2f, ey + w / 2f, cellSize * 1.5f, eyeFillPaint)
-                            } else if (eyeStyle == "rounded") {
-                                // Outer rounded rect
-                                val outerRect = android.graphics.RectF(ex + cellSize / 2f, ey + cellSize / 2f, ex + w - cellSize / 2f, ey + w - cellSize / 2f)
-                                canvas.drawRoundRect(outerRect, cellSize * 1.6f, cellSize * 1.6f, strokePaint)
-                                // Inner rounded rect
-                                val innerRect = android.graphics.RectF(ex + cellSize * 2f, ey + cellSize * 2f, ex + cellSize * 5f, ey + cellSize * 5f)
-                                canvas.drawRoundRect(innerRect, cellSize * 0.8f, cellSize * 0.8f, eyeFillPaint)
-                            }
-                        }
-                    }
-                    
-                    bitmap
-                } catch (e: Exception) {
-                    android.util.Log.e("GeneratorScreen", "Local render failed", e)
-                    scope.launch(Dispatchers.Main) {
-                        Toast.makeText(context, "Failed to render QR Code: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                    }
-                    null
-                }
+                generateQRCodeBitmap(qrContent)
+            }
+            if (qrBitmap == null) {
+                Toast.makeText(context, "Failed to render QR Code", Toast.LENGTH_LONG).show()
             }
             isGenerating = false
         }
@@ -406,11 +294,41 @@ fun GeneratorScreen(
         
         isSaving = true
         scope.launch {
+            val isDynamicQR = isDynamic && selectedType == QRCodeType.URL
+            val payloadContent = generateContent()
+            
+            var finalContent = payloadContent
+            var shortId: String? = null
+            var bitmapToEncode = currentBitmap
+
+            if (isDynamicQR) {
+                // Generate a random 8-character hex string
+                shortId = (1..8).map { 
+                    val chars = "0123456789abcdef"
+                    chars[java.util.Random().nextInt(chars.length)]
+                }.joinToString("")
+                
+                val baseUrlClean = if (RetrofitClient.BASE_URL.endsWith("/")) {
+                    RetrofitClient.BASE_URL.substring(0, RetrofitClient.BASE_URL.length - 1)
+                } else {
+                    RetrofitClient.BASE_URL
+                }
+                finalContent = "$baseUrlClean/r/$shortId"
+
+                // Regenerate bitmap with the redirect URL
+                val dynamicBitmap = withContext(Dispatchers.Default) {
+                    generateQRCodeBitmap(finalContent)
+                }
+                if (dynamicBitmap != null) {
+                    bitmapToEncode = dynamicBitmap
+                }
+            }
+
             // Convert bitmap to Base64
             val imageBase64 = withContext(Dispatchers.Default) {
                 try {
                     val byteArrayOutputStream = java.io.ByteArrayOutputStream()
-                    currentBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+                    bitmapToEncode.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
                     val byteArray = byteArrayOutputStream.toByteArray()
                     "data:image/png;base64," + android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
                 } catch (e: Exception) {
@@ -433,14 +351,15 @@ fun GeneratorScreen(
             
             val request = QRCodeRequest(
                 name = title,
-                content = generateContent(),
+                content = finalContent,
                 type = backendType,
                 image = imageBase64,
                 size = qrSize,
                 foregroundColor = String.format("#%06X", 0xFFFFFF and (if (isGradient) gradientStart.toArgb() else foregroundColor.toArgb())),
                 backgroundColor = String.format("#%06X", 0xFFFFFF and backgroundColor.toArgb()),
-                isDynamic = isDynamic && selectedType == QRCodeType.URL,
-                targetUrl = if (isDynamic && selectedType == QRCodeType.URL) generateContent() else null,
+                isDynamic = isDynamicQR,
+                targetUrl = if (isDynamicQR) payloadContent else null,
+                shortId = shortId,
                 workspaceId = selectedWorkspaceId,
                 customization = QRCodeCustomization(
                     foregroundColor = String.format("#%06X", 0xFFFFFF and (if (isGradient) gradientStart.toArgb() else foregroundColor.toArgb())),

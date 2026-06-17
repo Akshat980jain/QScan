@@ -3,7 +3,7 @@ import QRCodeLib from 'qrcode';
 import { useAuth } from '../context/AuthContext';
 import { useQR } from '../context/QRContext';
 import { useDialog } from '../context/DialogContext';
-import { API_URL } from '../config';
+import { API_URL, PRODUCTION_API_URL } from '../config';
 import { 
   Download, 
   Save, 
@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 
 // Actual QR generation function with custom visual rendering
-const generateQRDataURL = async (
+export const generateQRDataURL = async (
   content: string,
   options: QROptions,
   custom: {
@@ -204,7 +204,7 @@ const generateQRDataURL = async (
 
 type QRType = 'text' | 'url' | 'wifi' | 'contact' | 'email' | 'sms' | 'phone' | 'location' | 'event' | 'payment';
 
-interface QROptions {
+export interface QROptions {
   size: number;
   margin: number;
   fgColor: string;
@@ -665,14 +665,38 @@ END:VEVENT`;
     try {
       const payloadContent = generateQRContent();
       
+      let finalContent = payloadContent;
+      let shortId = undefined;
+      let finalDataURL = qrDataURL;
+
+      if (isDynamic && qrType === 'url') {
+        // Generate random 8-character hex string
+        shortId = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        
+        // Always use the production backend URL for the QR image so it's scannable
+        // on any device — never localhost (which only works on the dev machine).
+        const cleanApiUrl = PRODUCTION_API_URL.endsWith('/') ? PRODUCTION_API_URL.slice(0, -1) : PRODUCTION_API_URL;
+        finalContent = `${cleanApiUrl}/r/${shortId}`;
+
+        finalDataURL = await generateQRDataURL(finalContent, qrOptions, {
+          eyeStyle,
+          patternStyle,
+          isGradient,
+          gradientType,
+          gradientStart,
+          gradientEnd
+        });
+      }
+
       await saveQR({
         type: qrType,
-        content: payloadContent,
-        image: qrDataURL,
+        content: finalContent,
+        image: finalDataURL,
         name: customName || getQRName(),
         createdAt: new Date().toISOString(),
         isDynamic: isDynamic && qrType === 'url',
         targetUrl: isDynamic && qrType === 'url' ? payloadContent : undefined,
+        shortId,
         customization: {
           foregroundColor: qrOptions.fgColor,
           backgroundColor: qrOptions.bgColor,
@@ -686,9 +710,10 @@ END:VEVENT`;
       // Switch tab to library by triggering custom event
       const event = new Event('switchToLibrary');
       window.dispatchEvent(event);
-    } catch (err: any) {
-      console.error(err);
-      setValidationErrors([err.message || 'Failed to save to library']);
+    } catch (err) {
+      const error = err as Error;
+      console.error(error);
+      setValidationErrors([error.message || 'Failed to save to library']);
     } finally {
       setIsSaving(false);
     }

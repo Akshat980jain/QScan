@@ -32,6 +32,7 @@ data class QRCode(
     val isDynamic: Boolean = false,
     val targetUrl: String? = null,
     val shortId: String? = null,
+    val scanCount: Int = 0,
     val workspaceId: String? = null,
     val customization: QRCodeCustomization? = null
 )
@@ -49,6 +50,7 @@ data class QRCodeRequest(
     val logo: String? = null,
     val isDynamic: Boolean = false,
     val targetUrl: String? = null,
+    val shortId: String? = null,
     val workspaceId: String? = null,
     val customization: QRCodeCustomization? = null
 )

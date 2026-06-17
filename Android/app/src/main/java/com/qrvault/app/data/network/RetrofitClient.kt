@@ -11,7 +11,7 @@ object RetrofitClient {
     // Change this to your actual backend URL
     // private const val BASE_URL = "http://10.0.2.2:5000/" // For Android emulator
     // private const val BASE_URL = "http://192.168.1.17:5000/" // For physical device on same network
-    private const val BASE_URL = "https://qscan-backend.onrender.com/" // For production / hosted backend
+    const val BASE_URL = "https://qscan-backend.onrender.com/" // For production / hosted backend
     
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

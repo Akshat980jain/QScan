@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.qrvault.app.data.model.*
 import com.qrvault.app.data.repository.QRCodeRepository
+import com.qrvault.app.util.QRCodeGenerator
 import com.qrvault.app.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -584,8 +585,21 @@ fun LibraryScreen(
                                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.2f else 0.5f), RoundedCornerShape(16.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val bitmap = remember(qrCode.image) {
-                                    if (qrCode.image.isNotEmpty()) {
+                                val bitmap = remember(qrCode.image, qrCode.content) {
+                                    if (qrCode.isDynamic && qrCode.type == "url") {
+                                        val fg = qrCode.customization?.foregroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.BLACK
+                                        val bg = qrCode.customization?.backgroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.WHITE
+                                        val eye = qrCode.customization?.eyeStyle ?: "square"
+                                        val pattern = qrCode.customization?.patternStyle ?: "square"
+                                        QRCodeGenerator.generate(
+                                            qrContent = qrCode.content,
+                                            qrSize = qrCode.size,
+                                            foregroundColor = fg,
+                                            backgroundColor = bg,
+                                            eyeStyle = eye,
+                                            patternStyle = pattern
+                                        )
+                                    } else if (qrCode.image.isNotEmpty()) {
                                         try {
                                             val base64String = if (qrCode.image.contains(",")) {
                                                 qrCode.image.substringAfter(",")
@@ -746,7 +760,7 @@ fun LibraryScreen(
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Scan Count", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
-                                    Text("${(qrCode as Any).let { 0 /* Simulated scans or count value */ }} scans", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${qrCode.scanCount} scans", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             
@@ -965,8 +979,21 @@ private fun QRCodeCard(
                     .background(if (isDark) Orange500.copy(alpha = 0.15f) else Orange50),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = remember(qrCode.image) {
-                    if (qrCode.image.isNotEmpty()) {
+                val bitmap = remember(qrCode.image, qrCode.content) {
+                    if (qrCode.isDynamic && qrCode.type == "url") {
+                        val fg = qrCode.customization?.foregroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.BLACK
+                        val bg = qrCode.customization?.backgroundColor?.let { android.graphics.Color.parseColor(it) } ?: android.graphics.Color.WHITE
+                        val eye = qrCode.customization?.eyeStyle ?: "square"
+                        val pattern = qrCode.customization?.patternStyle ?: "square"
+                        QRCodeGenerator.generate(
+                            qrContent = qrCode.content,
+                            qrSize = qrCode.size,
+                            foregroundColor = fg,
+                            backgroundColor = bg,
+                            eyeStyle = eye,
+                            patternStyle = pattern
+                        )
+                    } else if (qrCode.image.isNotEmpty()) {
                         try {
                             val base64String = if (qrCode.image.contains(",")) {
                                 qrCode.image.substringAfter(",")

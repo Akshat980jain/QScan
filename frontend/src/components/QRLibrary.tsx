@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDialog } from '../context/DialogContext';
 import { API_URL } from '../config';
 import { QRDropZone } from './QRDropZone';
+import { generateQRDataURL } from './QRGenerator';
 import type { QRCode as QRCodeType } from '../context/QRContext';
 
 interface AnalyticsData {
@@ -46,6 +47,7 @@ export function QRLibrary() {
   
   // Modal states
   const [selectedQR, setSelectedQR] = useState<QRCodeType | null>(null);
+  const [qrImageURL, setQrImageURL] = useState('');
   const [activeTab, setActiveTab] = useState<'info' | 'analytics'>('info');
   const [isDownloadDropdownOpen, setIsDownloadDropdownOpen] = useState(false);
   
@@ -82,6 +84,38 @@ export function QRLibrary() {
       setEditedUrl(selectedQR.targetUrl || selectedQR.content);
       setEditError(null);
       setAnalyticsData(null);
+      setQrImageURL(selectedQR.image);
+
+      const updateImage = async () => {
+        if (selectedQR.isDynamic && selectedQR.type === 'url') {
+          try {
+            const generated = await generateQRDataURL(
+              selectedQR.content,
+              {
+                fgColor: selectedQR.customization?.foregroundColor || '#000000',
+                bgColor: selectedQR.customization?.backgroundColor || '#FFFFFF',
+                size: selectedQR.size || 400,
+                errorCorrectionLevel: selectedQR.logo ? 'H' : 'M',
+                margin: 0
+              },
+              {
+                eyeStyle: (selectedQR.customization?.eyeStyle as 'square' | 'circle' | 'rounded') || 'square',
+                patternStyle: (selectedQR.customization?.patternStyle as 'square' | 'dot' | 'line') || 'square',
+                isGradient: false,
+                gradientType: 'linear',
+                gradientStart: '#000000',
+                gradientEnd: '#000000'
+              }
+            );
+            if (generated) {
+              setQrImageURL(generated);
+            }
+          } catch (err) {
+            console.error('Failed to regenerate dynamic QR image', err);
+          }
+        }
+      };
+      updateImage();
     }
   }, [selectedQR]);
 
@@ -152,16 +186,16 @@ export function QRLibrary() {
     }
   };
 
-  const downloadQR = (qr: QRCodeType) => {
+  const downloadQR = (qr: QRCodeType, overrideImage?: string) => {
     const link = document.createElement('a');
     link.download = `${qr.name}-${Date.now()}.png`;
-    link.href = qr.image;
+    link.href = overrideImage || qr.image;
     link.click();
   };
 
-  const downloadSVG = (qr: QRCodeType) => {
+  const downloadSVG = (qr: QRCodeType, overrideImage?: string) => {
     const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
-      <image href="${qr.image}" width="400" height="400" />
+      <image href="${overrideImage || qr.image}" width="400" height="400" />
     </svg>`;
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
@@ -172,7 +206,7 @@ export function QRLibrary() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadPDF = (qr: QRCodeType) => {
+  const downloadPDF = (qr: QRCodeType, overrideImage?: string) => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
@@ -200,7 +234,7 @@ export function QRLibrary() {
             </style>
           </head>
           <body>
-            <img src="${qr.image}" onload="window.print();window.close();" />
+            <img src="${overrideImage || qr.image}" onload="window.print();window.close();" />
           </body>
         </html>
       `);
@@ -625,7 +659,7 @@ export function QRLibrary() {
                   {/* Left block - QR Image & Download */}
                   <div className="md:col-span-5 flex flex-col items-center space-y-6 bg-white p-6 rounded-xl border border-gray-150 shadow-sm">
                     <img 
-                      src={selectedQR.image} 
+                      src={qrImageURL} 
                       alt={selectedQR.name} 
                       className="w-full max-w-[240px] aspect-square object-contain bg-gray-50 p-3 rounded-lg border border-gray-100" 
                     />
@@ -645,7 +679,7 @@ export function QRLibrary() {
                           <div className="absolute left-0 bottom-full mb-2 w-full bg-white rounded-xl shadow-2xl border border-gray-200 py-2.5 z-50">
                             <button
                               onClick={() => {
-                                downloadQR(selectedQR);
+                                downloadQR(selectedQR, qrImageURL);
                                 setIsDownloadDropdownOpen(false);
                               }}
                               className="flex items-center space-x-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 transition-colors text-left"
@@ -655,7 +689,7 @@ export function QRLibrary() {
                             </button>
                             <button
                               onClick={() => {
-                                downloadSVG(selectedQR);
+                                downloadSVG(selectedQR, qrImageURL);
                                 setIsDownloadDropdownOpen(false);
                               }}
                               className="flex items-center space-x-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 transition-colors text-left"
@@ -665,7 +699,7 @@ export function QRLibrary() {
                             </button>
                             <button
                               onClick={() => {
-                                downloadPDF(selectedQR);
+                                downloadPDF(selectedQR, qrImageURL);
                                 setIsDownloadDropdownOpen(false);
                               }}
                               className="flex items-center space-x-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 transition-colors text-left"
