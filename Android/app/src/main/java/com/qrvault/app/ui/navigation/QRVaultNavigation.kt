@@ -90,7 +90,8 @@ fun QRVaultNavigation() {
                                         saveState = true
                                     }
                                     launchSingleTop = true
-                                    restoreState = true
+                                    // Library screen always reloads fresh to show newly saved QR codes
+                                    restoreState = item.route != Screen.Library.route
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(

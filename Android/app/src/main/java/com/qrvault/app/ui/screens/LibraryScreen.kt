@@ -66,38 +66,40 @@ fun LibraryScreen(
     var workspacesList by remember { mutableStateOf<List<Workspace>>(emptyList()) }
     var expandedWorkspaceDropdown by remember { mutableStateOf(false) }
     
+    // refreshKey increments to force a reload (used after saving a QR from GeneratorScreen)
+    var refreshKey by remember { mutableStateOf(0) }
+    
     val typeFilters = listOf("All", "Text", "URL", "WiFi", "vCard", "Email")
     val categoryFilters = listOf("All", "Work", "Personal", "Social", "Other")
-    
-    // Fetch QR codes when workspace changes
-    LaunchedEffect(isLoggedIn, selectedWorkspaceId) {
-        if (isLoggedIn) {
-            isLoading = true
-            errorMessage = null
-            try {
-                android.util.Log.d("LibraryScreen", "Fetching QR codes for workspace: $selectedWorkspaceId")
-                val result = qrRepository.getQRCodes(selectedWorkspaceId)
-                result.fold(
-                    onSuccess = { 
-                        qrCodes = it 
-                    },
-                    onFailure = { 
-                        errorMessage = it.message 
-                    }
-                )
-                // Fetch workspaces list if empty
-                if (workspacesList.isEmpty()) {
-                    qrRepository.getWorkspaces().onSuccess {
-                        workspacesList = it
-                    }
-                }
-            } catch (e: Exception) {
-                errorMessage = e.message ?: "An error occurred"
-            } finally {
-                isLoading = false
+
+    // Shared fetch function so it can be called from both LaunchedEffect and refresh button
+    suspend fun loadQRCodes() {
+        if (!isLoggedIn) return
+        isLoading = true
+        errorMessage = null
+        try {
+            android.util.Log.d("LibraryScreen", "Fetching QR codes for workspace: $selectedWorkspaceId (refreshKey=$refreshKey)")
+            val result = qrRepository.getQRCodes(selectedWorkspaceId)
+            result.fold(
+                onSuccess = { qrCodes = it },
+                onFailure = { errorMessage = it.message }
+            )
+            if (workspacesList.isEmpty()) {
+                qrRepository.getWorkspaces().onSuccess { workspacesList = it }
             }
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "An error occurred"
+        } finally {
+            isLoading = false
         }
     }
+
+    // Fetch QR codes when workspace changes OR refreshKey changes (e.g. after saving a new QR)
+    LaunchedEffect(isLoggedIn, selectedWorkspaceId, refreshKey) {
+        loadQRCodes()
+    }
+
+
     
     val filteredQRCodes = qrCodes.filter { qr ->
         val matchesSearch = searchQuery.isEmpty() || 
@@ -160,55 +162,69 @@ fun LibraryScreen(
                     )
                 }
                 
-                // Workspace Dropdown Button
+                // Workspace Dropdown Button + Refresh
                 if (isLoggedIn) {
-                    Box {
-                        Surface(
-                            onClick = { expandedWorkspaceDropdown = true },
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(start = 8.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Refresh button
+                        IconButton(
+                            onClick = { scope.launch { loadQRCodes() } }
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = selectedWorkspaceName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.widthIn(max = 120.dp)
-                                )
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = if (isLoading) MaterialTheme.colorScheme.onSurfaceVariant
+                                       else MaterialTheme.colorScheme.primary
+                            )
                         }
                         
-                        DropdownMenu(
-                            expanded = expandedWorkspaceDropdown,
-                            onDismissRequest = { expandedWorkspaceDropdown = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Personal Space") },
-                                onClick = {
-                                    selectedWorkspaceId = null
-                                    selectedWorkspaceName = "Personal Space"
-                                    expandedWorkspaceDropdown = false
+                        Box {
+                            Surface(
+                                onClick = { expandedWorkspaceDropdown = true },
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.padding(start = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = selectedWorkspaceName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.widthIn(max = 120.dp)
+                                    )
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                 }
-                            )
-                            workspacesList.forEach { ws ->
+                            }
+                            
+                            DropdownMenu(
+                                expanded = expandedWorkspaceDropdown,
+                                onDismissRequest = { expandedWorkspaceDropdown = false }
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(ws.name) },
+                                    text = { Text("Personal Space") },
                                     onClick = {
-                                        selectedWorkspaceId = ws.id
-                                        selectedWorkspaceName = ws.name
+                                        selectedWorkspaceId = null
+                                        selectedWorkspaceName = "Personal Space"
                                         expandedWorkspaceDropdown = false
                                     }
                                 )
+                                workspacesList.forEach { ws ->
+                                    DropdownMenuItem(
+                                        text = { Text(ws.name) },
+                                        onClick = {
+                                            selectedWorkspaceId = ws.id
+                                            selectedWorkspaceName = ws.name
+                                            expandedWorkspaceDropdown = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
