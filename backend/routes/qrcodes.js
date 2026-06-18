@@ -13,14 +13,6 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
   try {
     const { name, type, content, image, metadata, isDynamic, customization, workspaceId } = req.body;
 
-    console.log('QR Code creation request received:');
-    console.log('- name:', name);
-    console.log('- type:', type);
-    console.log('- content length:', content?.length);
-    console.log('- image present:', !!image);
-    console.log('- isDynamic:', isDynamic);
-    console.log('- user id:', req.user._id);
-
     // Process metadata based on QR type
     let processedMetadata = {};
 
@@ -48,7 +40,7 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
 
     let finalContent = content;
     let targetUrl = req.body.targetUrl || null;
-    let shortId = req.body.shortId || null;
+    let shortId = req.body.shortId || undefined;
 
     if (isDynamic && type === 'url') {
       const crypto = require('crypto');
@@ -57,7 +49,7 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
       if (shortId) {
         const existing = await QRCode.findOne({ shortId });
         if (existing) {
-          shortId = null; // Collision or invalid, force regeneration
+          shortId = undefined; // Collision or invalid, force regeneration
         }
       }
       
@@ -102,7 +94,6 @@ router.post('/', authenticateToken, validateQRCode, async (req, res) => {
     });
 
     await qrCode.save();
-    console.log('QR Code saved successfully with id:', qrCode._id);
 
     const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
     const doc = qrCode.toObject();
@@ -200,6 +191,64 @@ router.get('/', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while fetching QR codes'
+    });
+  }
+});
+
+// @route   GET /api/qr-codes/stats/summary
+// @desc    Get QR code statistics for the user
+// @access  Private
+// ⚠️  This route MUST be defined before /:id to prevent Express matching 'stats' as an id param
+router.get('/stats/summary', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const mongoose = require('mongoose');
+    const userOid = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
+
+    // Get total count
+    const totalCount = await QRCode.countDocuments({ userId: userOid, isActive: true });
+
+    // Get count by type
+    const typeStats = await QRCode.aggregate([
+      { $match: { userId: userOid, isActive: true } },
+      { $group: { _id: '$type', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get total scans
+    const scanStats = await QRCode.aggregate([
+      { $match: { userId: userOid, isActive: true } },
+      { $group: { _id: null, totalScans: { $sum: '$scanCount' } } }
+    ]);
+
+    // Get recent activity (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentCount = await QRCode.countDocuments({
+      userId: userOid,
+      isActive: true,
+      createdAt: { $gte: sevenDaysAgo }
+    });
+
+    // Get favorites count
+    const favoritesCount = await QRCode.countDocuments({ userId: userOid, isActive: true, isFavorite: true });
+
+    res.json({
+      success: true,
+      stats: {
+        totalQRCodes: totalCount,
+        totalScans: scanStats[0]?.totalScans || 0,
+        recentQRCodes: recentCount,
+        favoritesCount: favoritesCount,
+        typeBreakdown: typeStats
+      }
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching statistics'
     });
   }
 });
@@ -376,63 +425,6 @@ router.post('/:id/scan', authenticateToken, async (req, res) => {
     });
   }
 });
-
-// @route   GET /api/qr-codes/stats/summary
-// @desc    Get QR code statistics for the user
-// @access  Private
-router.get('/stats/summary', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user._id;
-
-    // Get total count
-    const totalCount = await QRCode.countDocuments({ userId, isActive: true });
-
-    // Get count by type
-    const typeStats = await QRCode.aggregate([
-      { $match: { userId, isActive: true } },
-      { $group: { _id: '$type', count: { $sum: 1 } } },
-      { $sort: { count: -1 } }
-    ]);
-
-    // Get total scans
-    const scanStats = await QRCode.aggregate([
-      { $match: { userId, isActive: true } },
-      { $group: { _id: null, totalScans: { $sum: '$scanCount' } } }
-    ]);
-
-    // Get recent activity (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const recentCount = await QRCode.countDocuments({
-      userId,
-      isActive: true,
-      createdAt: { $gte: sevenDaysAgo }
-    });
-
-    // Get favorites count
-    const favoritesCount = await QRCode.countDocuments({ userId, isActive: true, isFavorite: true });
-
-    res.json({
-      success: true,
-      stats: {
-        totalQRCodes: totalCount,
-        totalScans: scanStats[0]?.totalScans || 0,
-        recentQRCodes: recentCount,
-        favoritesCount: favoritesCount,
-        typeBreakdown: typeStats
-      }
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching statistics'
-    });
-  }
-});
-
-
 
 // @route   PATCH /api/qr-codes/:id/favorite
 // @desc    Toggle favorite status of a QR code

@@ -15,7 +15,7 @@ const qrCodeSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'QR code type is required'],
-    enum: ['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms', 'location', 'event', 'payment'],
+    enum: ['text', 'url', 'wifi', 'contact', 'vcard', 'email', 'phone', 'sms', 'location', 'event', 'payment'],
     lowercase: true
   },
   content: {
@@ -107,7 +107,6 @@ const qrCodeSchema = new mongoose.Schema({
 qrCodeSchema.index({ userId: 1, createdAt: -1 });
 qrCodeSchema.index({ userId: 1, type: 1 });
 qrCodeSchema.index({ userId: 1, name: 'text' });
-qrCodeSchema.index({ shortId: 1 }, { unique: true, sparse: true });
 qrCodeSchema.index({ workspaceId: 1 });
 
 // Virtual for formatted creation date

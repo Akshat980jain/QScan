@@ -15,6 +15,12 @@ const colors = {
 };
 
 const connectDB = async () => {
+  // In test environment, tests manage their own in-memory DB via tests/testDb.js
+  // Skip the auto-connection to prevent double connections or hitting Atlas
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+
   try {
     let mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/qrvault';
     

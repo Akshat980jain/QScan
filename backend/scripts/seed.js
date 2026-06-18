@@ -22,17 +22,24 @@ const seedData = async () => {
     await QRCode.deleteMany({});
     console.log('Cleared existing data');
 
-    // Create sample users
+    // Create sample users — passwords must meet complexity requirements:
+    // min 6 chars, at least one uppercase, one lowercase, one number
     const users = [
       {
         name: 'John Doe',
         email: 'john@example.com',
-        password: 'password123'
+        password: 'Password123',
+        accountType: 'individual',
+        subscribeToNewsletter: false,
+        agreeToTerms: true
       },
       {
         name: 'Jane Smith',
         email: 'jane@example.com',
-        password: 'password123'
+        password: 'Password123',
+        accountType: 'business',
+        subscribeToNewsletter: true,
+        agreeToTerms: true
       }
     ];
 

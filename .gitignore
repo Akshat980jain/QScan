@@ -1,7 +1,22 @@
-# Dependencies
+# Dependency directories
 node_modules/
+jspm_packages/
+web_modules/
 
-# Production / Build outputs
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.local
+local.properties
+*.jks
+*.keystore
+google-services.json
+
+# Build and distribution outputs
 dist/
 dist-ssr/
 build/
@@ -9,18 +24,21 @@ bin/
 gen/
 out/
 release/
+x64/
+x86/
+ARM/
+obj/
+app-release.apk
+app-debug.apk
 
-# Environment and secrets
-.env
-.env.local
-.env.*.local
-*.local
-local.properties
-*.jks
-*.keystore
-google-services.json
+# Test and coverage artifacts
+coverage/
+.nyc_output/
+.jest/
+htmlcov/
+*.lcov
 
-# IDEs and Editors
+# IDEs, editors and toolconfigs
 .idea/
 .vscode/
 !.vscode/extensions.json
@@ -32,7 +50,13 @@ google-services.json
 *.njsproj
 *.sln
 *.sw?
+*.swo
+*.swn
 .bolt/
+.project
+.classpath
+.settings/
+.project.json
 
 # Logs
 logs/
@@ -45,14 +69,6 @@ lerna-debug.log*
 
 # Android-specific ignores
 .gradle/
-*.apk
-*.aar
-*.ap_
-*.aab
-*.dex
-*.class
-proguard/
-.navigation/
 captures/
 .externalNativeBuild/
 .cxx/
@@ -67,7 +83,23 @@ lint/outputs/
 lint/tmp/
 *.hprof
 *.kotlin_module
+.navigation/
+proguard/
+*.dex
+*.class
+*.aar
+*.ap_
+*.aab
 
-# OS specific files
+# OS-specific files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Package manager lockfile considerations (optional, but keep default locks unless specified)
+# yarn.lock
+# package-lock.json
+# pnpm-lock.yaml

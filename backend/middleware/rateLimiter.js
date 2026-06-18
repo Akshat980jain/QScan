@@ -10,6 +10,7 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test'
 });
 
 // Auth rate limiter (more restrictive)
@@ -22,6 +23,7 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test'
 });
 
 // QR code creation limiter
@@ -34,6 +36,7 @@ const qrCreationLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test'
 });
 
 module.exports = {

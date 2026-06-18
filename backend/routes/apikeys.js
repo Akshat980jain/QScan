@@ -29,8 +29,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // Generate a secure random key: prefix_<random>
-    const rawKey = `qrv_${crypto.randomBytes(24).toString('hex')}`;
-    const prefix = rawKey.substring(0, 10); // "qrv_" + 6 chars
+    const rawKey = `qrv_live_${crypto.randomBytes(24).toString('hex')}`;
+    const prefix = rawKey.substring(0, 14); // "qrv_live_" + 5 chars
 
     const apiKey = new ApiKey({
       userId: req.user._id,

@@ -27,21 +27,32 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration — whitelist allowed origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:5173', 'http://localhost:5174'];
+
 app.use(cors({
-  origin: true, // Allow all origins for development/mobile apps
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin '${origin}' not allowed`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));
 
 // Compression middleware
 app.use(compression());
 
-// Logging middleware
+// Logging middleware — suppress in test to keep test output clean
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
-} else {
+} else if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 
@@ -52,15 +63,18 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 app.use(generalLimiter);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoints
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler); // alias for tests
+
+function healthHandler(req, res) {
   res.status(200).json({
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
-});
+}
 
 // API routes
 app.use('/api/auth', authRoutes);

@@ -82,7 +82,7 @@ const validateQRCode = [
     .isLength({ min: 1, max: 100 })
     .withMessage('Name must be between 1 and 100 characters'),
   body('type')
-    .isIn(['text', 'url', 'wifi', 'contact', 'email', 'phone', 'sms', 'location', 'event', 'payment'])
+    .isIn(['text', 'url', 'wifi', 'contact', 'vcard', 'email', 'phone', 'sms', 'location', 'event', 'payment'])
     .withMessage('Invalid QR code type'),
   body('content')
     .isLength({ min: 1, max: 2000 })

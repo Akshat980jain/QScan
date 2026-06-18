@@ -7,36 +7,7 @@ const Session = require('../models/Session');
 const { authenticateToken } = require('../middleware/auth');
 const { validateUserRegistration, validateUserLogin, validateUserUpdate } = require('../middleware/validation');
 
-function parseUA(userAgent) {
-  if (!userAgent) {
-    return { deviceType: 'other', os: 'unknown', browser: 'unknown' };
-  }
-  
-  const ua = userAgent.toLowerCase();
-  
-  let os = 'unknown';
-  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) os = 'iOS';
-  else if (ua.includes('android')) os = 'Android';
-  else if (ua.includes('win')) os = 'Windows';
-  else if (ua.includes('macintosh') || ua.includes('mac os')) os = 'macOS';
-  else if (ua.includes('linux')) os = 'Linux';
-  
-  let deviceType = 'desktop';
-  if (ua.includes('mobi') || ua.includes('iphone') || ua.includes('ipod')) {
-    deviceType = 'mobile';
-  } else if (ua.includes('ipad') || ua.includes('tablet') || (ua.includes('android') && !ua.includes('mobi'))) {
-    deviceType = 'tablet';
-  }
-  
-  let browser = 'unknown';
-  if (ua.includes('firefox')) browser = 'Firefox';
-  else if (ua.includes('chrome') && !ua.includes('chromium')) browser = 'Chrome';
-  else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari';
-  else if (ua.includes('edge') || ua.includes('edg')) browser = 'Edge';
-  else if (ua.includes('opera') || ua.includes('opr')) browser = 'Opera';
-  
-  return { deviceType, os, browser };
-}
+const parseUA = require('../utils/parseUA');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -305,9 +276,16 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Invalidate all active sessions for this user (except the current one)
+    // so that compromised sessions cannot be used after a password change.
+    await Session.deleteMany({
+      userId: user._id,
+      token: { $ne: req.token }
+    });
+
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully. All other sessions have been revoked.'
     });
   } catch (error) {
     console.error('Password change error:', error);
