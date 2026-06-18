@@ -1,5 +1,7 @@
 # QRVault (QScan) — Full-Stack QR Code Ecosystem
 
+🌐 **Live Hosted Frontend**: [https://qscan-2q1l.onrender.com](https://qscan-2q1l.onrender.com)
+
 QRVault (QScan) is a modern, multi-platform QR code management ecosystem. It consists of a secure Node.js backend API, a dynamic React + TypeScript web application, and a native Kotlin + Jetpack Compose Android client.
 
 With QRVault, users can generate custom QR codes, scan them using their mobile device cameras or web browsers, track scan history, view analytics, and manage their QR vaults seamlessly across platforms.
@@ -37,6 +39,7 @@ QScan/
 
 ### 2. Frontend Web App
 - **Location**: `[frontend/](file:///e:/QScan/frontend)`
+- **Live URL**: [https://qscan-2q1l.onrender.com](https://qscan-2q1l.onrender.com)
 - **Tech Stack**: React 18, Vite, TypeScript, Tailwind CSS, Lucide icons, ZXing Browser.
 - **Core Capabilities**:
   - Interactive QR Code Generator with download option.
